@@ -51,7 +51,8 @@ export function createAccountService({ store, mailer, accountKey }) {
       const { email } = req.body;
       if (typeof email !== 'string' || email.length > 255) return res.status(400).json({ error: 'INVALID_EMAIL' });
       const user = await store.findUser(email.trim().toLowerCase());
-      if (user?.password_hash) await sendToken(user, 'reset', req.marketContext.country, req.get('origin'));
+      // The mail follows the company's country, like the verification mail, not the domain it was requested on.
+      if (user?.password_hash) await sendToken(user, 'reset', await store.companyCountry(user.company_id) || req.marketContext.country, req.get('origin'));
       res.json({ ok: true });
     });
     app.post('/api/auth/reset-password', authLimit, async (req, res) => {

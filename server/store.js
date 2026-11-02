@@ -5,6 +5,7 @@ const userFields=['email_verified_at','password_hash','mfa_secret_enc','mfa_pend
 export class MemoryStore {
   userTokens = new Map();
   async findUserById(id) {return this.users.get(id)||null;}
+  async companyCountry(companyId) {return this.companies.get(companyId)?.country||null;}
   async updateUser(id,fields) {
     const user=this.users.get(id);if(!user)throw new Error('USER_NOT_FOUND');
     for(const [key,value] of Object.entries(fields)){if(!userFields.includes(key))throw new Error('INVALID_USER_FIELD');user[key]=structuredClone(value);}
@@ -120,6 +121,7 @@ export class MemoryStore {
 export class PostgresStore {
   constructor(connectionString) { this.pool = new pg.Pool({ connectionString, max: 10 }); }
   async findUserById(id) {return (await this.pool.query('SELECT * FROM users WHERE id=$1',[id])).rows[0]||null;}
+  async companyCountry(companyId) {return (await this.pool.query('SELECT country FROM companies WHERE id=$1',[companyId])).rows[0]?.country||null;}
   async updateUser(id,fields) {
     const entries=Object.entries(fields);if(entries.some(([key])=>!userFields.includes(key)))throw new Error('INVALID_USER_FIELD');
     if(!entries.length)return;
