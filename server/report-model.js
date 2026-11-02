@@ -131,6 +131,7 @@ export function buildDocument(company, snapshot) {
   if (audience === 'internal' && w) {
     sections.push({ id: 'review', title: t.review, items: [
       [t.legalEntity, w.profile?.legalName || '—'], [t.confirmedHeadcount, String(w.profile?.headcount ?? '—')], [t.payrollComplete, yesNo(w.profile?.payrollComplete)],
+      [t.criteriaAgreement, ({ agreed: t.criteriaAgreed, no_representatives: t.criteriaNoRepresentatives, pending: t.criteriaPending })[w.criteriaAgreement?.status] || '—'],
       ...analysis.groups.flatMap(g => [
         ...Object.entries(w.classification?.[g.category] || {}).map(([key, value]) => [`${g.category} · ${criteriaLabels[language][key] || key}`, value || '—']),
         ...Object.entries({ [t.reasons]: w.reviews?.[g.category]?.explanation, [t.action]: w.reviews?.[g.category]?.action, [t.owner]: w.reviews?.[g.category]?.owner, [t.due]: w.reviews?.[g.category]?.due }).filter(([, v]) => v).map(([key, value]) => [`${g.category} · ${key}`, value]),

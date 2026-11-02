@@ -1,5 +1,5 @@
 import { reportLanguage, reportLocale, countryNames } from './report-i18n.js';
-import { renderDocument } from './worker-rights.js';
+import { renderDocument, mimeFor } from './worker-rights.js';
 
 // Directive (EU) 2023/970 Art. 5: applicants receive the initial pay or its range (and the collective agreement,
 // where one applies) before the interview, are not asked about their pay history, and job titles and notices are
@@ -93,13 +93,13 @@ export function payCriteriaRoutes(app, { store, yearValue }) {
   }));
   app.post('/api/pay-criteria/document', wrap(async (req, res) => {
     const company = req.session.company, kind = req.body.kind, format = req.body.format || 'txt', year = yearValue(req.body.year);
-    if (!['criteria', 'vacancy'].includes(kind) || !['txt', 'pdf'].includes(format)) throw new Error('INVALID_CRITERIA');
+    if (!['criteria', 'vacancy'].includes(kind) || !['txt', 'pdf', 'html'].includes(format)) throw new Error('INVALID_CRITERIA');
     const criteria = await store.companyDocument(company.id, PAY_CRITERIA);
     if (!criteria || !Object.keys(criteria.ranges).length) throw new Error('NO_CRITERIA');
     const workflow = await store.getWorkflow(company.id, year);
     const doc = kind === 'criteria' ? criteriaDocument(company, criteria, workflow.classification || {}) : vacancyDocument(company, criteria, Array.isArray(req.body.categories) ? req.body.categories.filter(c => typeof c === 'string') : []);
     const output = await renderDocument(doc, format, company, doc.title);
     res.setHeader('Content-Disposition', `attachment; filename="equitensa-${kind === 'criteria' ? 'pay-criteria' : 'vacancy-pay'}.${format}"`);
-    res.type(format === 'pdf' ? 'application/pdf' : 'text/plain').send(output);
+    res.type(mimeFor(format)).send(output);
   }));
 }

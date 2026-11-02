@@ -15,7 +15,7 @@ test('PostgreSQL worker rights: requests, deadlines as dates, answering, per-com
   await store.pool.end();
   const query = async (sql, params) => { const result = await db.query(sql, params); return { ...result, rowCount: result.affectedRows ?? result.rows.length }; };
   store.pool = { query, connect: async () => ({ query, release() {} }) };
-  for (const name of ['001_initial', '002_self_service', '003_platform_control', '004_google_auth', '005_import_batches', '006_payroll_ledger', '007_account_security', '008_worker_rights', '009_company_documents', '010_api_ingest']) await db.exec(await readFile(new URL(`../db/${name}.sql`, import.meta.url), 'utf8'));
+  for (const name of ['001_initial', '002_self_service', '003_platform_control', '004_google_auth', '005_import_batches', '006_payroll_ledger', '007_account_security', '008_worker_rights', '009_company_documents', '010_api_ingest', '011_info_request_kinds']) await db.exec(await readFile(new URL(`../db/${name}.sql`, import.meta.url), 'utf8'));
   const a = { id: randomUUID(), name: 'A', country: 'DE' }, b = { id: randomUUID(), name: 'B', country: 'SI' };
   for (const [company, mail] of [[a, 'a@example.test'], [b, 'b@example.test']]) await store.createAccount(company, { id: randomUUID(), company_id: company.id, email: mail, password_hash: 'x' });
 

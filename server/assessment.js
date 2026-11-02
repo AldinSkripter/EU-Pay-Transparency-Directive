@@ -3,7 +3,7 @@ import { analyze, REVIEW_THRESHOLD_PERCENT, SMALL_GROUP_MINIMUM } from './pay.js
 import { regulatory } from './regulatory.js';
 import { reportLanguage, reportLocale, texts, countryNames } from './report-i18n.js';
 import { audienceOf, statusOf, suppressFor, percentFormatter } from './report-model.js';
-import { renderText, renderPdf } from './document-render.js';
+import { renderText, renderPdf, renderHtml } from './document-render.js';
 import { csvCell, xmlEscape } from './reports.js';
 
 // Joint pay assessment, Directive (EU) 2023/970 Art. 10(2)-(3): the content the directive prescribes, filled from
@@ -63,6 +63,7 @@ export function assessmentDocument(company, snapshot) {
   return { language, title: t.assessmentTitle, subtitle: t.assessmentSubtitle, status: snapshot.prepared ? t.statusPrepared : t.statusDraft, sections, coverLine: `${company.name} · ${snapshot.reporting_year} · ${countryNames[language][company.country]}`, recipientLine: `${t.recipient}: ${t.recipients[data.audience]}`, keyFigures: [[t.assessment, String(data.categoriesAtOrAboveThreshold.length)], [t.category, String(data.categories.length)]] };
 }
 export const assessmentText = (company, snapshot) => renderText(assessmentDocument(company, snapshot));
+export const assessmentHtml = (company, snapshot) => { const doc = assessmentDocument(company, snapshot); return renderHtml(doc, { lang: doc.language, title: `${doc.title} ${company.country} ${snapshot.reporting_year}` }); };
 export const assessmentPdf = (company, snapshot) => { const doc = assessmentDocument(company, snapshot); return renderPdf(doc, { author: company.name, title: `${doc.title} ${company.country} ${snapshot.reporting_year}` }); };
 
 const flatRows = data => data.categories.map(c => [c.category, c.proportion.men, c.proportion.women, c.proportion.womenPercent, c.averagePay.men.annual, c.averagePay.women.annual, c.averagePay.men.hourly, c.averagePay.women.hourly, c.averagePay.men.variableAnnual, c.averagePay.women.variableAnnual, c.gaps.hourly, c.gaps.annual, c.comparable, c.protected, c.atOrAboveThreshold, c.justified, c.reasons, c.leaveReturn, c.measures.action, c.measures.owner, c.measures.due, c.measures.remedied]);

@@ -14,6 +14,8 @@ export function validateWorkflow(input, snapshot, previous = {}) {
   const count = Number(input.profile?.headcount);
   const document = { snapshotId:snapshot.id, profile:{ legalName:text(input.profile?.legalName,255), headcount:Number.isInteger(count) && count > 0 && count <= 1000000 ? count : null, payrollComplete:input.profile?.payrollComplete === true }, classification, reviews,
     approval:{ manager:text(input.approval?.manager,255), representatives:text(input.approval?.representatives), confirmed:input.approval?.confirmed === true, consulted:input.approval?.consulted === true },
+    // Art. 4(4): the criteria for comparing the value of work are agreed with workers' representatives where such representatives exist.
+    criteriaAgreement:{ status:['agreed','no_representatives','pending'].includes(input.criteriaAgreement?.status) ? input.criteriaAgreement.status : '', note:text(input.criteriaAgreement?.note,500) },
     // Art. 10(2)(e) and (g): content of the joint pay assessment that cannot be derived from pay data.
     assessment:{ previousMeasures:text(input.assessment?.previousMeasures), leaveReturn:Object.fromEntries(categories.map(category=>[category,text(input.assessment?.leaveReturn?.[category])])) },
     reportingDate:validDate(input.reportingDate) ? input.reportingDate : '' };

@@ -97,3 +97,33 @@ export function renderPdf(doc, { author, title }) {
     pdf.end();
   });
 }
+
+// Directive (EU) 2023/970 Art. 8: information given to workers and applicants under Arts. 5, 6 and 7 must be
+// available in a format accessible to persons with disabilities. A PDF generated here is not tagged, so every
+// document also comes as HTML: semantic headings, labelled tables, language attribute, no information carried by
+// colour or images, scalable text and strong contrast. Screen readers, braille displays and browsers read it natively.
+const escapeHtml = value => String(value ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+const accessibleStyle = 'body{font-family:Arial,Helvetica,sans-serif;font-size:1.0625rem;line-height:1.65;color:#111;background:#fff;margin:0}main{max-width:52rem;margin:0 auto;padding:1.5rem 1rem 3rem}h1{font-size:1.9rem;line-height:1.25}h2{font-size:1.35rem;margin-top:2.2rem;border-bottom:2px solid #111;padding-bottom:.3rem}dl{display:grid;grid-template-columns:minmax(10rem,2fr) 3fr;gap:.4rem 1rem}dt{font-weight:700}dd{margin:0}table{border-collapse:collapse;width:100%;margin:1rem 0}caption{text-align:left;font-weight:700;padding:.3rem 0}th,td{border:1px solid #111;padding:.45rem .6rem;text-align:left;vertical-align:top}th{background:#eee}:focus-visible{outline:3px solid #0050d0;outline-offset:2px}@media(max-width:36rem){dl{grid-template-columns:1fr}}@media print{a{color:#000}}';
+// A table header cell must never be empty: assistive technology would announce nothing for the first column.
+const emptyHeader = { de: 'Merkmal', sl: 'Lastnost', en: 'Item' };
+export function renderHtml(doc, { lang = 'de', title } = {}) {
+  const out = ['<!DOCTYPE html>', `<html lang="${escapeHtml(lang)}">`, `<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>${escapeHtml(title || doc.title)}</title><style>${accessibleStyle}</style></head>`, '<body><main>', `<header><p>${escapeHtml(doc.subtitle)}</p><h1>${escapeHtml(doc.title)}</h1>`];
+  for (const line of [doc.coverLine, doc.recipientLine, doc.status]) if (line) out.push(`<p>${escapeHtml(line)}</p>`);
+  out.push('</header>');
+  if (doc.keyFigures?.length) out.push(`<section><dl>${doc.keyFigures.map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd>`).join('')}</dl></section>`);
+  for (const section of doc.sections) {
+    out.push('<section>');
+    if (section.title) out.push(`<h2>${escapeHtml(section.title)}</h2>`);
+    for (const paragraph of section.paragraphs || []) out.push(`<p>${escapeHtml(paragraph)}</p>`);
+    if (section.items?.length) out.push(`<dl>${section.items.map(([label, value]) => `<dt>${escapeHtml(label)}</dt><dd>${escapeHtml(value)}</dd>`).join('')}</dl>`);
+    if (section.table) {
+      const head = section.table.head.filter(Boolean).length ? `<thead><tr>${section.table.head.map(h => `<th scope="col">${escapeHtml(h || emptyHeader[lang] || emptyHeader.en)}</th>`).join('')}</tr></thead>` : '';
+      // The first cell of a row names the row, so screen readers announce it with every value.
+      const body = section.table.rows.map(row => `<tr>${row.map((cell, i) => i === 0 ? `<th scope="row">${escapeHtml(cell)}</th>` : `<td>${escapeHtml(cell)}</td>`).join('')}</tr>`).join('');
+      out.push(`<table>${section.title ? `<caption>${escapeHtml(section.title)}</caption>` : ''}${head}<tbody>${body}</tbody></table>`);
+    }
+    out.push('</section>');
+  }
+  out.push('</main></body></html>');
+  return out.join('\n');
+}

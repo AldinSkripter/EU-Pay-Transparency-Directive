@@ -78,6 +78,32 @@ Stranica "Entgeltspannen & Kriterien":
 
 Raspon određuje poslodavac po objektivnim, rodno neutralnim kriterijima; prijedlog je samo orijentacija. Testovi: `tests/pay-criteria.test.js`.
 
+## Direktiva 2023/970 član po član: šta obavezuje poslodavca i šta radi Equitensa
+
+Provjereno prema punom tekstu direktive na EUR-Lexu, 2.11.2026. (svih 37 članova). Članovi 14–17 i 19–29, 31–35 obavezuju **države**, ne poslodavce.
+
+| Član | Obaveza poslodavca | Equitensa |
+| --- | --- | --- |
+| 3 | Definicije: nivo plate = bruto godišnje i bruto po satu; jaz = (M − Ž) / M; medijan; kvartili kao četiri jednake grupe; kategorija radnika | Primijenjeno u `server/pay.js`. Kvartili su "jednake" grupe koliko dozvoljava broj radnika (raspodjela po `floor`) |
+| 4(4) | Kriteriji za jednakovrijedan rad (vještine, napor, odgovornost, uslovi) dogovoreni s predstavnicima radnika, ako postoje | Korak "Gleichwertige Arbeit" bilježi četiri kriterija po kategoriji i **status dogovora s predstavnicima** (nije blokirajuće). Nema alata za vrednovanje poslova |
+| 5 | Plata ili raspon prije zaposlenja, zabrana pitanja o dosadašnjoj plati, rodno neutralni oglasi | Stranica "Entgeltspannen & Kriterien": raspon po kategoriji, tekst oglasa s listom provjere |
+| 6 | Kriteriji za određivanje plata i napredovanje lako dostupni radnicima | List kriterija (PDF, TXT, HTML) |
+| 7(1)–(2), (4) | Radnik na zahtjev dobija svoj nivo plate i prosjeke po spolu za svoju kategoriju, pismeno, u roku 2 mjeseca; može preko predstavnika ili tijela za jednakost; dodatna pojašnjenja uz obrazložen odgovor | Evidencija zahtjeva s rokom, generator odgovora iz podataka. Kanali: radnik, predstavnici, tijelo za jednakost, **inspekcija rada**. Vrste: informacija i **dodatno pojašnjenje** |
+| 7(3) | Godišnja obavijest svim radnicima o ovom pravu | Generator teksta i evidencija datuma slanja |
+| 7(5)–(6) | Radnik smije otkriti svoju platu; poslodavac smije ograničiti upotrebu tuđih podataka | Napomene u odgovoru radniku |
+| **8** | **Informacije iz čl. 5, 6 i 7 moraju biti u formatu dostupnom osobama s invaliditetom** | Svaki takav dokument ima **pristupačni HTML** (jezik, naslovi, označene tabele, kontrast, bez slika) i običan tekst. PDF nije označen (tagged) |
+| 9(1) | 7 pokazatelja a–g | `server/article9.js`, svi formati |
+| 9(2)–(5) | Rokovi i učestalost po veličini | `shared/plans.js` |
+| 9(6) | Potvrda uprave nakon savjetovanja s predstavnicima; predstavnici imaju pristup metodologiji | Potvrda u svim paketima, odjeljak "Methodik und Hinweise" |
+| 9(7), (9) | Tijelu a–g; javnost a–f; radnicima i predstavnicima g; ranije četiri godine na zahtjev | Paketi po primaocu, historija u paketima |
+| 9(10) | Dodatna pojašnjenja o podacima i razlikama za radnike, predstavnike, inspekciju rada i tijela za jednakost; obrazložen odgovor; otklanjanje neopravdanih razlika | Evidencija zahtjeva (vrsta "pojašnjenje", kanal "inspekcija rada"), korak "Erklären & handeln" |
+| 10 | Zajednička procjena plata pri jazu od 5 % ili više, bez opravdanja i bez otklanjanja u 6 mjeseci; sadržaj (a)–(g) | Alarm, dokument s (a)–(g), rok od 6 mjeseci. (e) i (g) unosi poslodavac |
+| 12 | GDPR; podaci samo za jednaku plaću; zaštita identiteta | Pseudonimizacija, zaštita malih grupa samo za radnike i javnost. **Politika brisanja i čuvanja podataka još nije napravljena** |
+| 18(2) | Ako poslodavac nije proveo obaveze iz čl. 5, 6, 7, 9 i 10, on mora dokazati da nije bilo diskriminacije | **Nachweisübersicht**: datiran pregled onoga što je firma stvarno evidentirala po članovima (HTML, PDF, TXT, JSON) |
+| 24 | Javne nabavke: država može isključiti ponuđača s neopravdanim jazom većim od 5 % ili nepoštovanjem obaveza | Alarm od 5 % i evidencija opravdanja pokrivaju ovo; nema posebne funkcije |
+
+Testovi: `tests/accessibility-requests.test.js`, `tests/article9.test.js`, `tests/review-alarm.test.js`, `tests/worker-rights.test.js`, `tests/pay-criteria.test.js`.
+
 ## Stanje prenošenja po državama (provjereno 2.11.2026.)
 
 Istraživanje je rađeno bez prave tražilice, pa "nije pronađeno" znači "nije moguće provjeriti", ne "sigurno ne postoji". Ponoviti prije svake komercijalne tvrdnje.

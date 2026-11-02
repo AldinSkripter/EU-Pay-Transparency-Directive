@@ -8,6 +8,7 @@ import { parseImportInput } from './file-parser.js';
 import { payrollRoutes } from './payroll-routes.js';
 import { workerRightsRoutes } from './worker-rights.js';
 import { payCriteriaRoutes } from './pay-criteria.js';
+import { evidenceRoutes } from './evidence.js';
 import { ingestPushRoutes, integrationKeyRoutes, resolveBatch } from './ingest.js';
 import { parseDelimited, suggestMapping, mapImportRecord, validateMapping, inspectImport, validateImportContext } from './importer.js';
 import { assessQuality, validateFixes, prepareRecords, normalizeMapping } from './data-quality.js';
@@ -18,8 +19,8 @@ import { normalizeEmployee, analyze, reportingSchedule } from './pay.js';
 import { providers } from './hris.js';
 import { integrationGuides, requiredData } from './integration-guides.js';
 import { demoRows } from './demo.js';
-import { reportCsv, reportXml, reportPdf, reportText, reportJson, reportXlsx } from './reports.js';
-import { assessmentAudiences, assessmentJson, assessmentText, assessmentPdf, assessmentCsv, assessmentXlsx, assessmentXml } from './assessment.js';
+import { reportCsv, reportXml, reportPdf, reportText, reportJson, reportXlsx, reportHtml } from './reports.js';
+import { assessmentAudiences, assessmentJson, assessmentText, assessmentPdf, assessmentCsv, assessmentXlsx, assessmentXml, assessmentHtml } from './assessment.js';
 import { validateWorkflow, readiness } from './workflow.js';
 import { billingRoutes, plans, verifyStripeEvent, subscriptionPlan } from './billing.js';
 import { regulatory, reportingPlan } from './regulatory.js';
@@ -253,10 +254,11 @@ export function createApp({ store, demo = false, secret, secure = false, origins
   payrollRoutes(app,{store,secret,yearValue});
   workerRightsRoutes(app,{store,secret,yearValue});
   payCriteriaRoutes(app,{store,yearValue});
+  evidenceRoutes(app,{store,yearValue});
   integrationKeyRoutes(app,{store});
   app.get('/api/reports/:format', async (req, res) => {
     const format = req.params.format;
-    if (!['csv','xml','pdf','txt','xlsx','json'].includes(format)) return res.status(400).json({ error: 'INVALID_FORMAT' });
+    if (!['csv','xml','pdf','txt','xlsx','json','html'].includes(format)) return res.status(400).json({ error: 'INVALID_FORMAT' });
     const year = yearValue(req.query.year), company = req.session.company;
     const storedSnapshot = await store.latestSnapshot(company.id, year);
     if (!storedSnapshot) return res.status(404).json({ error: 'NO_DATA' });
@@ -280,8 +282,8 @@ export function createApp({ store, demo = false, secret, secure = false, origins
       if (!readiness(snapshot.workflow,analyze(snapshot.rows),snapshot).ready) return res.status(409).json({error:'REPORT_INCOMPLETE'});
       snapshot.prepared=true;
     }
-    const mime = { xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',json:'application/json',csv: 'text/csv', xml: 'application/xml', pdf: 'application/pdf', txt: 'text/plain' };
-    const writers = type==='assessment' ? {xlsx:assessmentXlsx,json:assessmentJson,pdf:assessmentPdf,csv:assessmentCsv,xml:assessmentXml,txt:assessmentText} : {xlsx:reportXlsx,json:reportJson,pdf:reportPdf,csv:reportCsv,xml:reportXml,txt:reportText};
+    const mime = { xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',json:'application/json',csv: 'text/csv', xml: 'application/xml', pdf: 'application/pdf', txt: 'text/plain', html: 'text/html; charset=utf-8' };
+    const writers = type==='assessment' ? {xlsx:assessmentXlsx,json:assessmentJson,pdf:assessmentPdf,csv:assessmentCsv,xml:assessmentXml,txt:assessmentText,html:assessmentHtml} : {xlsx:reportXlsx,json:reportJson,pdf:reportPdf,csv:reportCsv,xml:reportXml,txt:reportText,html:reportHtml};
     const output = await writers[format](company,snapshot);
     await store.audit(company.id, snapshot.prepared?'prepared_report_exported':'draft_exported', { format, audience, type, snapshot_id: snapshot.id, rules_version:regulatory.version, workflow:snapshot.workflow, user_id:req.session.user.id });
     res.setHeader('X-Report-Status', snapshot.prepared?'PREPARED_INTERNAL_UNVERIFIED':'DRAFT_UNVERIFIED');

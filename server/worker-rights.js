@@ -1,7 +1,7 @@
 import { createHmac } from 'node:crypto';
 import { reportLanguage, reportLocale, countryNames } from './report-i18n.js';
 import { SMALL_GROUP_MINIMUM } from './pay.js';
-import { renderText, renderPdf } from './document-render.js';
+import { renderText, renderPdf, renderHtml } from './document-render.js';
 
 // Directive (EU) 2023/970 Art. 7: workers may ask for their individual pay level and the average pay levels, by sex,
 // of the category of workers doing the same work or work of equal value. The employer must answer in writing within
@@ -16,7 +16,12 @@ export function addMonths(iso, months) {
 }
 export const RESPONSE_MONTHS = 2;
 export const dueOn = receivedOn => addMonths(receivedOn, RESPONSE_MONTHS);
-export const channels = ['worker', 'representative', 'equality_body'];
+export const channels = ['worker', 'representative', 'equality_body', 'labour_inspectorate'];
+// 'information' = Art. 7(1) request for the individual pay level and category averages.
+// 'clarification' = Art. 7(2) second paragraph and Art. 9(10): additional clarifications of data or of gender pay
+// differences, answered with a substantiated reply. The directive fixes two months only for the first kind; the same
+// period is used as the internal target for the second, where the directive says "reasonable time".
+export const kinds = ['information', 'clarification'];
 const dayDiff = (from, to) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / 86400000);
 
 export function requestState(request, today = new Date().toISOString().slice(0, 10)) {
@@ -100,7 +105,8 @@ export function noticeDocument(company, { year, contact }) {
   return { language, title: t.noticeTitle, subtitle: t.noticeSubtitle, status: String(year), coverLine: `${company.name} · ${year}`, recipientLine: '', keyFigures: [],
     sections: [{ id: 'intro', title: null, paragraphs: [t.noticeIntro] }, { id: 'steps', title: t.noticeSteps, paragraphs: t.noticeStepLines(contact).map((line, i) => `${i + 1}. ${line}`) }, { id: 'sent', title: null, paragraphs: [t.noticeSent] }] };
 }
-export const renderDocument = async (doc, format, company, title) => format === 'pdf' ? renderPdf(doc, { author: company.name, title }) : renderText(doc);
+export const renderDocument = async (doc, format, company, title) => format === 'pdf' ? renderPdf(doc, { author: company.name, title }) : format === 'html' ? renderHtml(doc, { lang: doc.language, title }) : renderText(doc);
+export const mimeFor = format => format === 'pdf' ? 'application/pdf' : format === 'html' ? 'text/html; charset=utf-8' : 'text/plain';
 
 const cleanText = (value, max, required = false) => {
   if (value === undefined || value === null || value === '') return required ? null : '';
@@ -113,11 +119,11 @@ export function workerRightsRoutes(app, { store, secret, yearValue }) {
   const state = rows => rows.map(r => requestState(r));
   app.get('/api/requests', wrap(async (req, res) => { const requests = state(await store.listInfoRequests(req.session.company.id)); res.json({ requests, summary: summarize(requests), responseMonths: RESPONSE_MONTHS }); }));
   app.post('/api/requests', wrap(async (req, res) => {
-    const { receivedOn, channel, requesterLabel, note } = req.body, label = cleanText(requesterLabel, 120, true), extra = cleanText(note, 2000);
+    const { receivedOn, channel, requesterLabel, note } = req.body, kind = req.body.kind ?? 'information', label = cleanText(requesterLabel, 120, true), extra = cleanText(note, 2000);
     const today = new Date().toISOString().slice(0, 10);
-    if (!validDate(receivedOn) || receivedOn > today || !channels.includes(channel) || !label || extra === null) throw new Error('INVALID_REQUEST');
-    const created = await store.createInfoRequest(req.session.company.id, { received_on: receivedOn, due_on: dueOn(receivedOn), channel, requester_label: label, note: extra, created_by: req.session.user.id });
-    await store.audit(req.session.company.id, 'info_request_created', { request_id: created.id, channel, user_id: req.session.user.id });
+    if (!validDate(receivedOn) || receivedOn > today || !channels.includes(channel) || !kinds.includes(kind) || !label || extra === null) throw new Error('INVALID_REQUEST');
+    const created = await store.createInfoRequest(req.session.company.id, { received_on: receivedOn, due_on: dueOn(receivedOn), channel, kind, requester_label: label, note: extra, created_by: req.session.user.id });
+    await store.audit(req.session.company.id, 'info_request_created', { request_id: created.id, channel, kind, user_id: req.session.user.id });
     res.status(201).json({ request: requestState(created) });
   }));
   // The employee ID travels in the body, never in a URL, and is not stored: only the pseudonym is compared.
@@ -125,7 +131,7 @@ export function workerRightsRoutes(app, { store, secret, yearValue }) {
     const company = req.session.company, request = await store.getInfoRequest(company.id, req.params.id);
     if (!request) throw new Error('REQUEST_NOT_FOUND');
     const year = yearValue(req.body.year), internalId = cleanText(req.body.internalId, 255, true), format = req.body.format || 'json';
-    if (!internalId || !['json', 'txt', 'pdf'].includes(format)) throw new Error('INVALID_REQUEST');
+    if (!internalId || !['json', 'txt', 'pdf', 'html'].includes(format)) throw new Error('INVALID_REQUEST');
     const snapshot = await store.latestSnapshot(company.id, year);
     if (!snapshot) throw new Error('NO_DATA');
     const row = snapshot.rows.find(r => r.anonymized_id === pseudonymFor(secret, company.id, internalId));
@@ -135,7 +141,7 @@ export function workerRightsRoutes(app, { store, secret, yearValue }) {
     if (format === 'json') return res.json({ answer });
     const doc = answerDocument(company, answer), output = await renderDocument(doc, format, company, doc.title);
     res.setHeader('Content-Disposition', `attachment; filename="equitensa-pay-information-${year}.${format}"`);
-    res.type(format === 'pdf' ? 'application/pdf' : 'text/plain').send(output);
+    res.type(mimeFor(format)).send(output);
   }));
   app.post('/api/requests/:id/close', wrap(async (req, res) => {
     const company = req.session.company, request = await store.getInfoRequest(company.id, req.params.id), summary = cleanText(req.body.summary, 2000);
@@ -157,9 +163,9 @@ export function workerRightsRoutes(app, { store, secret, yearValue }) {
   }));
   app.post('/api/rights-notice/document', wrap(async (req, res) => {
     const company = req.session.company, year = yearValue(req.body.year), contact = cleanText(req.body.contact, 255, true), format = req.body.format || 'txt';
-    if (!contact || !['txt', 'pdf'].includes(format)) throw new Error('INVALID_REQUEST');
+    if (!contact || !['txt', 'pdf', 'html'].includes(format)) throw new Error('INVALID_REQUEST');
     const doc = noticeDocument(company, { year, contact }), output = await renderDocument(doc, format, company, doc.title);
     res.setHeader('Content-Disposition', `attachment; filename="equitensa-pay-information-notice-${year}.${format}"`);
-    res.type(format === 'pdf' ? 'application/pdf' : 'text/plain').send(output);
+    res.type(mimeFor(format)).send(output);
   }));
 }

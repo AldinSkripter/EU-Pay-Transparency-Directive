@@ -3,7 +3,7 @@ import { regulatory } from './regulatory.js';
 import { article9, article9Rows } from './article9.js';
 import { reportLanguage, texts } from './report-i18n.js';
 import { analysisFor, audienceOf, buildDocument, confirmationOf, article10Of, historyOf, statusOf, workforce } from './report-model.js';
-import { renderText, renderPdf } from './document-render.js';
+import { renderText, renderPdf, renderHtml } from './document-render.js';
 
 // Review fields are the employer's own Art. 10 working values. They must never reach other recipients because
 // they are computed from the real numbers of small, otherwise protected groups.
@@ -18,6 +18,7 @@ function workflowEntries(snapshot) {
 }
 
 export function reportText(company, snapshot) { return renderText(buildDocument(company, snapshot)); }
+export function reportHtml(company, snapshot) { const doc = buildDocument(company, snapshot); return renderHtml(doc, { lang: doc.language, title: `${doc.title} ${company.country} ${snapshot.reporting_year}` }); }
 
 // Prefix spreadsheet formula characters even inside quoted CSV cells.
 export function csvCell(value) {
