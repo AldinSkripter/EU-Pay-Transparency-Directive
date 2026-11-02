@@ -59,6 +59,10 @@ export const errorText=(error,L)=> {
   if(error.message==='COMPANY_SUSPENDED')return L('Der Zugang Ihrer Firma ist vorübergehend gesperrt. Bitte kontaktieren Sie Equitensa.','Dostop vašega podjetja je začasno blokiran. Obrnite se na Equitensa.');
   if(error.message==='SUBSCRIPTION_ALREADY_EXISTS')return L('Sie haben bereits eine Stripe-Bestellung. Verwalten Sie Ihr Paket unter „Paket & Abrechnung“.','Naročilo Stripe že obstaja. Paket upravljajte v razdelku »Paket in plačila«.');
   const accountMessages={
+    EMPLOYEE_NOT_FOUND:L('Zu dieser Personalnummer gibt es im gewählten Datenstand keine Person.','Za to šifro v izbranem podatkovnem posnetku ni osebe.'),
+    REQUEST_NOT_FOUND:L('Diese Anfrage wurde nicht gefunden.','Te zahteve ni mogoče najti.'),
+    INVALID_REQUEST:L('Bitte die Angaben prüfen: Datum nicht in der Zukunft, Pflichtfelder ausgefüllt, keine Sonderzeichen.','Preverite podatke: datum ne sme biti v prihodnosti, izpolnite obvezna polja, brez posebnih znakov.'),
+    NO_DATA:L('Für dieses Jahr gibt es noch keinen Datenstand. Bitte zuerst Daten importieren.','Za to leto še ni podatkovnega posnetka. Najprej uvozite podatke.'),
     EMAIL_NOT_VERIFIED:L('Bitte bestätigen Sie zuerst Ihre E-Mail-Adresse.','Najprej potrdite svoj e-poštni naslov.'),
     MFA_REQUIRED:L('Bitte den Code Ihrer Authenticator-App eingeben.','Vnesite kodo iz aplikacije za preverjanje.'),
     INVALID_MFA_CODE:L('Der Code ist ungültig oder bereits verwendet.','Koda ni veljavna ali je že uporabljena.'),

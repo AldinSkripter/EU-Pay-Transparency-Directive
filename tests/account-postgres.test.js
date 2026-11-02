@@ -15,7 +15,7 @@ test('PostgreSQL account security: tokens, single-use MFA steps and backup codes
   await store.pool.end();
   const query = async (sql, params) => { const result = await db.query(sql, params); return { ...result, rowCount: result.affectedRows ?? result.rows.length }; };
   store.pool = { query, connect: async () => ({ query, release() {} }) };
-  for (const name of ['001_initial', '002_self_service', '003_platform_control', '004_google_auth', '005_import_batches', '006_payroll_ledger', '007_account_security']) await db.exec(await readFile(new URL(`../db/${name}.sql`, import.meta.url), 'utf8'));
+  for (const name of ['001_initial', '002_self_service', '003_platform_control', '004_google_auth', '005_import_batches', '006_payroll_ledger', '007_account_security', '008_worker_rights']) await db.exec(await readFile(new URL(`../db/${name}.sql`, import.meta.url), 'utf8'));
   const company = { id: randomUUID(), name: 'Acme', country: 'SI' }, user = { id: randomUUID(), company_id: company.id, email: 'a@example.test', password_hash: 'x' };
   await store.createAccount(company, user);
   assert.equal((await store.session('missing')), null);

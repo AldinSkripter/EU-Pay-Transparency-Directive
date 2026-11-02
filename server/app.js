@@ -6,6 +6,7 @@ import { createAccountService } from './account.js';
 import { MemoryMailer } from './mailer.js';
 import { parseImportInput } from './file-parser.js';
 import { payrollRoutes } from './payroll-routes.js';
+import { workerRightsRoutes } from './worker-rights.js';
 import { parseDelimited, suggestMapping, mapImportRecord, validateMapping, inspectImport, validateImportContext } from './importer.js';
 import { marketContext, markets } from './market.js';
 import { hashPassword, verifyPassword, establishSession, sessionToken, hashToken } from './auth.js';
@@ -209,6 +210,7 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     }catch(error){res.status(422).json({error:error.message});}
   });
   payrollRoutes(app,{store,secret,yearValue});
+  workerRightsRoutes(app,{store,secret,yearValue});
   app.get('/api/reports/:format', async (req, res) => {
     const format = req.params.format;
     if (!['csv','xml','pdf','txt','xlsx','json'].includes(format)) return res.status(400).json({ error: 'INVALID_FORMAT' });

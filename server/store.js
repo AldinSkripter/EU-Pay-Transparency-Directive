@@ -4,6 +4,13 @@ import pg from 'pg';
 const userFields=['email_verified_at','password_hash','mfa_secret_enc','mfa_pending_enc','mfa_backup_hashes','mfa_last_step'];
 export class MemoryStore {
   userTokens = new Map();
+  infoRequests = new Map(); rightsNotices = new Map();
+  async listInfoRequests(companyId) {return structuredClone([...this.infoRequests.values()].filter(r=>r.company_id===companyId).sort((a,b)=>a.due_on.localeCompare(b.due_on)||a.created_at.localeCompare(b.created_at)));}
+  async createInfoRequest(companyId,request) {const row={id:randomUUID(),company_id:companyId,status:'open',answered_on:null,answer_summary:null,created_at:new Date().toISOString(),...request};this.infoRequests.set(row.id,row);return structuredClone(row);}
+  async getInfoRequest(companyId,id) {const row=this.infoRequests.get(id);return row&&row.company_id===companyId?structuredClone(row):null;}
+  async answerInfoRequest(companyId,id,{answeredOn,summary}) {const row=this.infoRequests.get(id);if(!row||row.company_id!==companyId)return null;Object.assign(row,{status:'answered',answered_on:answeredOn,answer_summary:summary});return structuredClone(row);}
+  async rightsNotice(companyId,year) {return structuredClone(this.rightsNotices.get(`${companyId}:${year}`)||null);}
+  async saveRightsNotice(companyId,year,notice) {this.rightsNotices.set(`${companyId}:${year}`,{notice_year:year,...notice});}
   async findUserById(id) {return this.users.get(id)||null;}
   async companyCountry(companyId) {return this.companies.get(companyId)?.country||null;}
   async updateUser(id,fields) {
@@ -120,6 +127,12 @@ export class MemoryStore {
 
 export class PostgresStore {
   constructor(connectionString) { this.pool = new pg.Pool({ connectionString, max: 10 }); }
+  async listInfoRequests(companyId) {return (await this.pool.query("SELECT id,company_id,to_char(received_on,'YYYY-MM-DD') AS received_on,to_char(due_on,'YYYY-MM-DD') AS due_on,channel,requester_label,note,status,to_char(answered_on,'YYYY-MM-DD') AS answered_on,answer_summary,created_at FROM info_requests WHERE company_id=$1 ORDER BY due_on,created_at",[companyId])).rows;}
+  async createInfoRequest(companyId,r) {return (await this.pool.query("INSERT INTO info_requests(id,company_id,received_on,due_on,channel,requester_label,note,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,company_id,to_char(received_on,'YYYY-MM-DD') AS received_on,to_char(due_on,'YYYY-MM-DD') AS due_on,channel,requester_label,note,status,to_char(answered_on,'YYYY-MM-DD') AS answered_on,answer_summary,created_at",[randomUUID(),companyId,r.received_on,r.due_on,r.channel,r.requester_label,r.note,r.created_by||null])).rows[0];}
+  async getInfoRequest(companyId,id) {return (await this.pool.query("SELECT id,company_id,to_char(received_on,'YYYY-MM-DD') AS received_on,to_char(due_on,'YYYY-MM-DD') AS due_on,channel,requester_label,note,status,to_char(answered_on,'YYYY-MM-DD') AS answered_on,answer_summary,created_at FROM info_requests WHERE company_id=$1 AND id=$2",[companyId,id])).rows[0]||null;}
+  async answerInfoRequest(companyId,id,{answeredOn,summary}) {return (await this.pool.query("UPDATE info_requests SET status='answered',answered_on=$3,answer_summary=$4 WHERE company_id=$1 AND id=$2 RETURNING id,company_id,to_char(received_on,'YYYY-MM-DD') AS received_on,to_char(due_on,'YYYY-MM-DD') AS due_on,channel,requester_label,note,status,to_char(answered_on,'YYYY-MM-DD') AS answered_on,answer_summary,created_at",[companyId,id,answeredOn,summary])).rows[0]||null;}
+  async rightsNotice(companyId,year) {return (await this.pool.query("SELECT notice_year,to_char(sent_on,'YYYY-MM-DD') AS sent_on,contact FROM rights_notices WHERE company_id=$1 AND notice_year=$2",[companyId,year])).rows[0]||null;}
+  async saveRightsNotice(companyId,year,notice) {await this.pool.query('INSERT INTO rights_notices(company_id,notice_year,sent_on,contact) VALUES($1,$2,$3,$4) ON CONFLICT(company_id,notice_year) DO UPDATE SET sent_on=$3,contact=$4',[companyId,year,notice.sent_on,notice.contact]);}
   async findUserById(id) {return (await this.pool.query('SELECT * FROM users WHERE id=$1',[id])).rows[0]||null;}
   async companyCountry(companyId) {return (await this.pool.query('SELECT country FROM companies WHERE id=$1',[companyId])).rows[0]?.country||null;}
   async updateUser(id,fields) {

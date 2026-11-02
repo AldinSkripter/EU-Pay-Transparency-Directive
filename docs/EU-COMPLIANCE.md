@@ -56,13 +56,24 @@ Kako to radi sistem:
 
 Testovi: `tests/review-alarm.test.js`, `tests/country-reports.test.js`.
 
+## Pravo radnika na informacije (čl. 7), za firme svih veličina
+
+U Austriji se prema Arbeiterkammeru već direktno primjenjuje. Stranica "Auskunftsrecht" u radnom prostoru:
+
+- bilježi svaki zahtjev (radnik, predstavnici ili tijelo za jednakost) i računa rok od **dva kalendarska mjeseca** (čl. 7(4)), s oznakama "bald fällig" i "überfällig";
+- iz podataka o platama izračunava **odgovor**: individualni nivo plate radnika (bruto godišnje i po satu, osnovno i varijabilno) i prosjeke žena i muškaraca u njegovoj kategoriji (čl. 7(1)), kao PDF ili tekst na jeziku države firme, uz uputu o pravima iz čl. 7(2), (5) i (6);
+- **ne čuva** radnikovu internu šifru (poredi se samo pseudonim), a u dnevniku ostaju samo datum, korisnik i je li odgovor stigao na vrijeme;
+- kad bi prosjeci otkrili platu pojedinca (manje od 5 osoba jednog spola), prosjeke ne daje (čl. 12(3)), a vlastitu platu daje;
+- vodi **godišnju obavijest** radnicima o ovom pravu (čl. 7(3)), generiše tekst s kontaktom za zahtjeve i bilježi datum slanja.
+
+Testovi: `tests/worker-rights.test.js`, `tests/worker-rights-postgres.test.js`.
+
 ## Šta još ne radi (prioritet P0)
 
-1. **Čl. 7: zahtjevi radnika za informacije.** Nema evidencije zahtjeva s rokom od dva mjeseca ni godišnje obavijesti radnicima. Važi za firme svih veličina, a u Austriji se prema Arbeiterkammeru već direktno primjenjuje.
-2. **Čl. 5 i 6:** podatak o početnoj plati pri zapošljavanju i dostupnost kriterija plata nisu u proizvodu.
-3. **Službena predaja državi.** Za DE, AT i SI nije potvrđen nijedan portal ni shema za novi izvještaj; Austrija nije prenijela direktivu. Izvoz je zato "pripremljen", ne "predan". Ne izmišljati shemu.
-4. **Pravni pregled i nezavisan obračun** po državi.
-5. **Operativa:** brisanje i čuvanje podataka (čl. 12(2) i GDPR), backup, SMTP, Stripe, DNS i TLS na stvarnim servisima.
-6. **Direktni HRIS konektori** (DATEV, SAP, BMD, Pantheon) čekaju stvarne anonimne izvoze. Datotečni uvoz postoji.
-7. **Procjena vrijednosti rada (čl. 4):** sistem bilježi kriterije po kategoriji, ali nema alat za vrednovanje poslova.
-8. **Radnici drugih spolova** ulaze u broj zaposlenih, ali ne u M/Ž poređenje, jer direktiva govori o ženama i muškarcima.
+1. **Čl. 5 i 6:** podatak o početnoj plati pri zapošljavanju i dostupnost kriterija plata nisu u proizvodu.
+2. **Službena predaja državi.** Za DE, AT i SI nije potvrđen nijedan portal ni shema za novi izvještaj; Austrija nije prenijela direktivu. Izvoz je zato "pripremljen", ne "predan". Ne izmišljati shemu.
+3. **Pravni pregled i nezavisan obračun** po državi.
+4. **Operativa:** brisanje i čuvanje podataka (čl. 12(2) i GDPR), backup, SMTP, Stripe, DNS i TLS na stvarnim servisima.
+5. **Direktni HRIS konektori** (DATEV, SAP, BMD, Pantheon) čekaju stvarne anonimne izvoze. Datotečni uvoz postoji.
+6. **Procjena vrijednosti rada (čl. 4):** sistem bilježi kriterije po kategoriji, ali nema alat za vrednovanje poslova.
+7. **Radnici drugih spolova** ulaze u broj zaposlenih, ali ne u M/Ž poređenje, jer direktiva govori o ženama i muškarcima.
