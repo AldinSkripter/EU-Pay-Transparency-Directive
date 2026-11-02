@@ -42,7 +42,7 @@ export class MemoryStore {
   async retireTestOrders() {let count=0;for(const order of this.orders.values())if(order.mode==='stripe' && order.stripe_environment==='test' && order.status!=='test_retired'){order.status='test_retired';count++;}return count;}
   async adminCompanies(query='',page=1) {
     const companies=[...this.companies.values()].filter(c=>c.name.toLowerCase().includes(query.toLowerCase())).reverse();
-    return {total:companies.length,page,companies:await Promise.all(companies.slice((page-1)*25,page*25).map(async c=>({...c,users:[...this.users.values()].filter(u=>u.company_id===c.id).length,employees:this.snapshots.findLast(s=>s.company_id===c.id)?.rows.length||0,order:[...this.orders.values()].findLast(o=>o.company_id===c.id)||null})))};
+    return {total:companies.length,page,companies:await Promise.all(companies.slice((page-1)*25,page*25).map(async c=>({...c,users:[...this.users.values()].filter(u=>u.company_id===c.id).length,verified_users:[...this.users.values()].filter(u=>u.company_id===c.id&&u.email_verified_at).length,employees:this.snapshots.findLast(s=>s.company_id===c.id)?.rows.length||0,order:[...this.orders.values()].findLast(o=>o.company_id===c.id)||null})))};
   }
   async adminOverview() {
     const companyOrders=await Promise.all([...this.companies.keys()].map(id=>this.activeOrder(id)));
@@ -164,7 +164,7 @@ export class PostgresStore {
     const [count,rows]=await Promise.all([
       this.pool.query('SELECT count(*)::int AS total FROM companies WHERE position(lower($1) in lower(name))>0',[query]),
       this.pool.query(`SELECT c.id,c.name,c.country,c.created_at,
-        (SELECT count(*)::int FROM users u WHERE u.company_id=c.id) AS users,
+        (SELECT count(*)::int FROM users u WHERE u.company_id=c.id) AS users,(SELECT count(*)::int FROM users u WHERE u.company_id=c.id AND u.email_verified_at IS NOT NULL) AS verified_users,
         (SELECT count(*)::int FROM employees e WHERE e.company_id=c.id AND e.snapshot_id=(SELECT s.id FROM snapshots s WHERE s.company_id=c.id ORDER BY s.created_at DESC,s.id DESC LIMIT 1)) AS employees,
         (SELECT row_to_json(o) FROM (SELECT id,plan,interval,mode,stripe_environment,status,created_at FROM billing_orders WHERE company_id=c.id ORDER BY created_at DESC,id DESC LIMIT 1) o) AS "order"
         FROM companies c WHERE position(lower($1) in lower(c.name))>0 ORDER BY c.created_at DESC,c.id DESC LIMIT 25 OFFSET $2`,[query,(page-1)*25])

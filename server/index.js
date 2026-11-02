@@ -17,7 +17,7 @@ const mailer = runtimeMailer({ url: process.env.SMTP_URL, from: process.env.MAIL
 const store = demo ? new MemoryStore() : new PostgresStore(process.env.DATABASE_URL);
 const billing={secretKey:process.env.STRIPE_SECRET_KEY,webhookSecret:process.env.STRIPE_WEBHOOK_SECRET,origin:process.env.BILLING_ORIGIN,prices:Object.fromEntries(['prepare','growth','scale'].flatMap(plan=>['monthly','annual'].map(interval=>[`${plan}_${interval}`,process.env[`STRIPE_PRICE_${plan.toUpperCase()}_${interval.toUpperCase()}`]])))};
 const control=await runtimeControl(store,production);
-const app = createApp({ store, demo, secret: process.env.PSEUDONYM_SECRET || randomBytes(32).toString('hex'), secure: production, origins,billing,control,mailer,accountKey });
+const app = createApp({ store, demo, secret: process.env.PSEUDONYM_SECRET || randomBytes(32).toString('hex'), secure: production, origins,billing,control,mailer,accountKey,requireOwnerMfa: production && process.env.ADMIN_REQUIRE_MFA !== 'false' });
 let vite;
 if (production) {
   const dist = fileURLToPath(new URL('../dist/', import.meta.url));

@@ -8,7 +8,7 @@ import { paymentDefaults, paymentView, paymentDraft, verifyPayment } from './pay
 import { plans } from './billing.js';
 import { googleAdminRoutes } from './google-config.js';
 
-export function adminRoutes(app,{control,store,billing,demo,secure,stripeFetch}) {
+export function adminRoutes(app,{control,store,billing,demo,secure,stripeFetch,requireMfa=secure}) {
   const router=express.Router();
   const loginLimit=rateLimit({windowMs:15*60_000,limit:10,standardHeaders:'draft-8',legacyHeaders:false});
   const checkedOwner=async(req,res,next)=>{
@@ -35,7 +35,7 @@ export function adminRoutes(app,{control,store,billing,demo,secure,stripeFetch})
     res.cookie('equitensa_owner',result.token,ownerCookie(secure));res.json({owner:result.owner});
   });
   router.use(checkedOwner);
-  router.get('/me',(req,res)=>res.json({owner:publicOwner(req.owner),mfaRequired:secure&&!req.owner.mfaSecret,demo}));
+  router.get('/me',(req,res)=>res.json({owner:publicOwner(req.owner),mfaRequired:requireMfa&&!req.owner.mfaSecret,demo}));
   router.post('/auth/logout',async(req,res)=>{
     await control.mutate(s=>{delete s.sessions[hashToken(ownerToken(req))];controlAudit(s,req.owner.email,'owner_logout');});
     res.clearCookie('equitensa_owner',ownerCookie(secure));res.json({ok:true});
@@ -62,8 +62,9 @@ export function adminRoutes(app,{control,store,billing,demo,secure,stripeFetch})
       revokeOwnerSessions(s,owner.id);controlAudit(s,owner.email,'owner_mfa_enabled');
     });res.clearCookie('equitensa_owner',ownerCookie(secure));res.json({backupCodes:backups});
   });
-  // A production owner must enroll MFA before accessing platform data or changing payments.
-  router.use((req,res,next)=>secure&&!req.owner.mfaSecret?res.status(403).json({error:'OWNER_MFA_REQUIRED'}):next());
+  // By default a production owner must enroll MFA before accessing platform data or changing payments.
+  // ADMIN_REQUIRE_MFA=false makes it optional; enrolled owners are still challenged at login.
+  router.use((req,res,next)=>requireMfa&&!req.owner.mfaSecret?res.status(403).json({error:'OWNER_MFA_REQUIRED'}):next());
   googleAdminRoutes(router,{control,demo,editable});
   router.get('/overview',async(req,res)=>{
     const [state,overview]=await Promise.all([control.read(),store.adminOverview()]);

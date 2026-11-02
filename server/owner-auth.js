@@ -9,6 +9,17 @@ export async function addOwner(control,email,password,role='owner',actor='server
   const owner={id:randomUUID(),email:email.trim().toLowerCase(),password_hash:await hashPassword(password),role,enabled:true,created_at:new Date().toISOString()};
   return control.mutate(state=>{if(state.owners.some(o=>o.email===owner.email))throw new Error('EMAIL_EXISTS');state.owners.push(owner);controlAudit(state,actor,'owner_created',{ownerId:owner.id,role});return publicOwner(owner);});
 }
+// Break-glass recovery used by the server CLI: new password, 2FA cleared, every session revoked.
+export async function resetOwner(control,email,password,actor='server-cli') {
+  if(typeof email!=='string'||typeof password!=='string'||password.length<14||password.length>128)throw new Error('INVALID_OWNER');
+  const password_hash=await hashPassword(password),address=email.trim().toLowerCase();
+  await control.mutate(s=>{
+    const owner=s.owners.find(o=>o.email===address);if(!owner)throw new Error('OWNER_NOT_FOUND');
+    owner.password_hash=password_hash;owner.enabled=true;
+    delete owner.mfaSecret;delete owner.pendingMfa;delete owner.backupHashes;delete owner.lastMfaStep;
+    revokeOwnerSessions(s,owner.id);controlAudit(s,actor,'owner_reset_by_cli',{ownerId:owner.id});
+  });
+}
 export async function completeOwnerSetup(control,token,email,password) {
   if(!validOwner(email,password,'owner') || !/^[a-f0-9]{64}$/.test(token||''))throw new Error('INVALID_OWNER_SETUP');
   const owner={id:randomUUID(),email:email.trim().toLowerCase(),password_hash:await hashPassword(password),role:'owner',enabled:true,created_at:new Date().toISOString()};

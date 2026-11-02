@@ -22,7 +22,7 @@ import { effectivePayment } from './payment-config.js';
 import {defaultGoogle,googleForRequest} from './google-config.js';
 import {googleRoutes} from './google-auth.js';
 
-export function createApp({ store, demo = false, secret, secure = false, origins = [], billing = {}, control = new MemoryControlStore(), stripeFetch = fetch, googleFetch = fetch, mailer = new MemoryMailer(), accountKey = randomBytes(32) }) {
+export function createApp({ store, demo = false, secret, secure = false, origins = [], billing = {}, control = new MemoryControlStore(), stripeFetch = fetch, googleFetch = fetch, mailer = new MemoryMailer(), accountKey = randomBytes(32), requireOwnerMfa = secure }) {
   const app = express();
   app.disable('x-powered-by');
   app.use(helmet({ contentSecurityPolicy: secure ? undefined : false }));
@@ -108,7 +108,7 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     const oldToken = sessionToken(req); if (oldToken) await store.deleteSession(hashToken(oldToken));
     await establishSession(store, res, user.id, secure); res.json({ company });
   });
-  adminRoutes(app,{control,store,billing,demo,secure,stripeFetch});
+  adminRoutes(app,{control,store,billing,demo,secure,stripeFetch,requireMfa:requireOwnerMfa});
   app.use('/api', async (req, res, next) => {
     const token = sessionToken(req);
     const session = token ? await store.session(hashToken(token)) : null;

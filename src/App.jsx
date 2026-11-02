@@ -4,9 +4,14 @@ import {api,Logo,Button,Field,CheckField,Notice,plans,annualSavingsPercent,error
 import {Landing,Pricing} from './Public';
 import Workspace from './Workspace';
 import {GoogleButton,GoogleComplete} from './GoogleAuth';
+import {makeT,initialLang} from './admin-i18n';
 const Admin=React.lazy(()=>import('./Admin'));
 export default function App() {
-  return location.pathname.startsWith('/admin')?<React.Suspense fallback={<div className="loading-page"><Logo/><p>Učitavanje administracije…</p></div>}><Admin/></React.Suspense>:<PublicApp/>;
+  return location.pathname.startsWith('/admin')?<React.Suspense fallback={<AdminLoading/>}><Admin/></React.Suspense>:<PublicApp/>;
+}
+function AdminLoading() {
+  const t=makeT(initialLang());
+  return <div className="loading-page"><Logo/><p>{t('Loading the administration…')}</p></div>;
 }
 function PublicApp() {
   const [context,setContext]=useState(null),[me,setMe]=useState(null),[view,setView]=useState('home'),[country,setCountry]=useState('DE'),[lang,setLang]=useState('de');

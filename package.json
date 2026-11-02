@@ -13,7 +13,8 @@
     "test": "node --test tests/*.test.js",
     "db:migrate": "node --env-file-if-exists=.env server/migrate.js",
     "admin:setup": "node --env-file-if-exists=.env server/admin-cli.js --setup",
-    "admin:create": "node --env-file-if-exists=.env server/admin-cli.js"
+    "admin:create": "node --env-file-if-exists=.env server/admin-cli.js",
+    "admin:reset": "node --env-file-if-exists=.env server/admin-cli.js --reset"
   },
   "dependencies": {
     "@tailwindcss/vite": "^4.1.0",
