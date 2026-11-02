@@ -42,7 +42,7 @@ npm test
 npm run build
 ```
 
-125 testova prolazi lokalno (1 preskočen), uključujući PostgreSQL WASM test trajnosti i rollbacka. Native PostgreSQL test je preskočen bez testne baze. Browser tok provjeren: odabir paketa → registracija → testkupnja → CSV mapiranje → kriteriji → mjere → potvrda → dostupno pripremljeno izvješće. Browser okruženje nije potvrdilo preuzimanje fajla događajem download; PDF/CSV/XML/TXT generatori provjereni API testovima. [CI](.github/workflows/ci.yml) uključuje PostgreSQL 16 servis, ali nije izvršen u ovoj sesiji.
+129 testova prolazi lokalno (1 preskočen), uključujući PostgreSQL WASM test trajnosti i rollbacka. Native PostgreSQL test je preskočen bez testne baze. Browser tok provjeren: odabir paketa → registracija → testkupnja → CSV mapiranje → kriteriji → mjere → potvrda → dostupno pripremljeno izvješće. Browser okruženje nije potvrdilo preuzimanje fajla događajem download; PDF/CSV/XML/TXT generatori provjereni API testovima. [CI](.github/workflows/ci.yml) uključuje PostgreSQL 16 servis, ali nije izvršen u ovoj sesiji.
 
 ## PostgreSQL i naplata
 

@@ -48,7 +48,7 @@ npm run admin:setup
 npm start
 ```
 
-Migracije 001–008 pokreću se jednom naredbom; 007 dodaje verifikaciju e-maila i MFA kolone, 008 zahtjeve radnika po članu 7. Postojeći korisnici bez Google prijave morat će jednom potvrditi e-mail.
+Migracije 001–009 pokreću se jednom naredbom; 007 dodaje verifikaciju e-maila i MFA kolone, 008 zahtjeve radnika po članu 7, 009 rasponе plata i kriterije (čl. 5 i 6). Postojeći korisnici bez Google prijave morat će jednom potvrditi e-mail.
 
 Provjeriti privilegije DB korisnika za migraciju i zatim ograničiti runtime korisnika prema operativnom modelu. Migracija koristi transakciju i može se ponovno pokrenuti; to nije pun sustav verzioniranih migracija za buduće izmjene.
 

@@ -11,5 +11,6 @@ try {
   await pool.query(await readFile(new URL('../db/006_payroll_ledger.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../db/007_account_security.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../db/008_worker_rights.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../db/009_company_documents.sql', import.meta.url), 'utf8'));
   console.log('Database migration complete.');
 } finally { await pool.end(); }

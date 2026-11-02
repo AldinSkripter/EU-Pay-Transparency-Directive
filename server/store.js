@@ -4,7 +4,9 @@ import pg from 'pg';
 const userFields=['email_verified_at','password_hash','mfa_secret_enc','mfa_pending_enc','mfa_backup_hashes','mfa_last_step'];
 export class MemoryStore {
   userTokens = new Map();
-  infoRequests = new Map(); rightsNotices = new Map();
+  infoRequests = new Map(); rightsNotices = new Map(); companyDocuments = new Map();
+  async companyDocument(companyId,kind) {return structuredClone(this.companyDocuments.get(`${companyId}:${kind}`)||null);}
+  async saveCompanyDocument(companyId,kind,document) {this.companyDocuments.set(`${companyId}:${kind}`,structuredClone(document));}
   async listInfoRequests(companyId) {return structuredClone([...this.infoRequests.values()].filter(r=>r.company_id===companyId).sort((a,b)=>a.due_on.localeCompare(b.due_on)||a.created_at.localeCompare(b.created_at)));}
   async createInfoRequest(companyId,request) {const row={id:randomUUID(),company_id:companyId,status:'open',answered_on:null,answer_summary:null,created_at:new Date().toISOString(),...request};this.infoRequests.set(row.id,row);return structuredClone(row);}
   async getInfoRequest(companyId,id) {const row=this.infoRequests.get(id);return row&&row.company_id===companyId?structuredClone(row):null;}
@@ -127,6 +129,8 @@ export class MemoryStore {
 
 export class PostgresStore {
   constructor(connectionString) { this.pool = new pg.Pool({ connectionString, max: 10 }); }
+  async companyDocument(companyId,kind) {return (await this.pool.query('SELECT document FROM company_documents WHERE company_id=$1 AND kind=$2',[companyId,kind])).rows[0]?.document||null;}
+  async saveCompanyDocument(companyId,kind,document) {await this.pool.query('INSERT INTO company_documents(company_id,kind,document) VALUES($1,$2,$3) ON CONFLICT(company_id,kind) DO UPDATE SET document=$3,updated_at=now()',[companyId,kind,JSON.stringify(document)]);}
   async listInfoRequests(companyId) {return (await this.pool.query("SELECT id,company_id,to_char(received_on,'YYYY-MM-DD') AS received_on,to_char(due_on,'YYYY-MM-DD') AS due_on,channel,requester_label,note,status,to_char(answered_on,'YYYY-MM-DD') AS answered_on,answer_summary,created_at FROM info_requests WHERE company_id=$1 ORDER BY due_on,created_at",[companyId])).rows;}
   async createInfoRequest(companyId,r) {return (await this.pool.query("INSERT INTO info_requests(id,company_id,received_on,due_on,channel,requester_label,note,created_by) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,company_id,to_char(received_on,'YYYY-MM-DD') AS received_on,to_char(due_on,'YYYY-MM-DD') AS due_on,channel,requester_label,note,status,to_char(answered_on,'YYYY-MM-DD') AS answered_on,answer_summary,created_at",[randomUUID(),companyId,r.received_on,r.due_on,r.channel,r.requester_label,r.note,r.created_by||null])).rows[0];}
   async getInfoRequest(companyId,id) {return (await this.pool.query("SELECT id,company_id,to_char(received_on,'YYYY-MM-DD') AS received_on,to_char(due_on,'YYYY-MM-DD') AS due_on,channel,requester_label,note,status,to_char(answered_on,'YYYY-MM-DD') AS answered_on,answer_summary,created_at FROM info_requests WHERE company_id=$1 AND id=$2",[companyId,id])).rows[0]||null;}

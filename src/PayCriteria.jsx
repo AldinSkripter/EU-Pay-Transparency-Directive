@@ -1,0 +1,33 @@
+import React,{useEffect,useState} from 'react';
+import {Download,ArrowRight,Sparkles} from 'lucide-react';
+import {api,Button,Field,TextField,Notice,Tag,errorText,download} from './ui';
+
+export default function PayCriteria({L,year}) {
+  const lang=L('de','sl'),locale=lang==='sl'?'sl-SI':'de-DE',money=n=>n===null||n===undefined?'—':n.toLocaleString(locale,{style:'currency',currency:'EUR',maximumFractionDigits:0});
+  const [data,setData]=useState(null),[ranges,setRanges]=useState({}),[progression,setProgression]=useState(''),[busy,setBusy]=useState(false),[error,setError]=useState(null),[message,setMessage]=useState(''),[dirty,setDirty]=useState(false);
+  useEffect(()=>{api(`/pay-criteria?year=${year}`).then(d=>{setData(d);setRanges(Object.fromEntries(Object.entries(d.document.ranges).map(([c,r])=>[c,{min:String(r.min),max:String(r.max),agreement:r.agreement||''}])));setProgression(d.document.progression||'');setDirty(false);}).catch(setError);},[year]);
+  const run=async fn=>{setBusy(true);setError(null);setMessage('');try{await fn();}catch(e){setError(e);}finally{setBusy(false);}};
+  const setRange=(category,patch)=>{setRanges(r=>({...r,[category]:{min:'',max:'',agreement:'',...r[category],...patch}}));setDirty(true);};
+  const body=()=>({ranges:Object.fromEntries(Object.entries(ranges).filter(([,r])=>r.min!==''||r.max!=='').map(([c,r])=>[c,{min:r.min,max:r.max,agreement:r.agreement}])),progression});
+  const save=()=>run(async()=>{await api('/pay-criteria',body());setDirty(false);setMessage(L('Gespeichert.','Shranjeno.'));});
+  const file=(kind,format,categories)=>run(async()=>{if(dirty)await api('/pay-criteria',body());setDirty(false);const response=await fetch('/api/pay-criteria/document',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({kind,format,year,categories})});if(!response.ok){const e=await response.json();throw Object.assign(new Error(e.error),e);}download(await response.arrayBuffer(),`equitensa-${kind==='criteria'?'pay-criteria':'vacancy-pay'}.${format}`,response.headers.get('content-type'));});
+  if(!data)return <p className="muted">{error?errorText(error,L):L('Wird geladen …','Nalaganje …')}</p>;
+  const categories=[...new Set([...Object.keys(data.suggestions),...Object.keys(ranges)])].sort((a,b)=>a.localeCompare(b));
+  return <div className="rights-page">
+    {error&&<Notice tone="error">{errorText(error,L)}</Notice>}{message&&<Notice>{message}</Notice>}
+    <Notice>{L('Artikel 5: Bewerbende erhalten vor dem Gespräch das Einstiegsentgelt oder dessen Spanne, werden nicht nach ihrem bisherigen Entgelt gefragt, und Anzeigen sind geschlechtsneutral. Artikel 6: Die Kriterien für Entgelt und Entgeltentwicklung sind für alle Beschäftigten leicht zugänglich. Die Spannen legen Sie nach objektiven, geschlechtsneutralen Kriterien fest; die Vorschläge unten sind nur eine Orientierung.','Člen 5: kandidati pred razgovorom prejmejo izhodiščno plačo ali razpon, o dosedanji plači se jih ne sprašuje, oglasi pa so spolno nevtralni. Člen 6: merila za plače in napredovanje so vsem zaposlenim lahko dostopna. Razpone določite po objektivnih, spolno nevtralnih merilih; spodnji predlogi so samo orientacija.')}</Notice>
+    <section className="panel"><div className="panel-title"><div><span className="eyebrow">ART. 5 · 6</span><h3>{L('Entgeltspannen je Kategorie','Plačilni razponi po kategorijah')}</h3></div><Tag>{year}</Tag></div>
+      {!categories.length?<p className="muted">{L('Importieren Sie zuerst Entgeltdaten, oder tragen Sie Kategorien manuell im Berichtsassistenten ein.','Najprej uvozite podatke o plačah.')}</p>
+      :<div className="table-scroll"><table><thead><tr><th>{L('Kategorie','Kategorija')}</th><th>{L('Vorschlag aus Ihren Daten (Grundentgelt)','Predlog iz vaših podatkov (osnovno plačilo)')}</th><th>{L('Von (€/Jahr)','Od (€/leto)')}</th><th>{L('Bis (€/Jahr)','Do (€/leto)')}</th><th>{L('Kollektivvertrag (optional)','Kolektivna pogodba (neobvezno)')}</th></tr></thead><tbody>{categories.map(category=>{const s=data.suggestions[category],r=ranges[category]||{min:'',max:'',agreement:''};return <tr key={category}>
+        <td><strong>{category}</strong>{s&&<small>{s.count} {L('Beschäftigte','zaposlenih')}</small>}</td>
+        <td>{s?<><span>{money(s.p10)} – {money(s.p90)}</span><small>{L('Median','Mediana')} {money(s.median)}</small>{s.medianGapPercent!==null&&Math.abs(s.medianGapPercent)>=5&&<Tag tone="amber">{L(`Median-Unterschied M/F ${s.medianGapPercent.toLocaleString(locale)} %`,`Razlika mediane M/Ž ${s.medianGapPercent.toLocaleString(locale)} %`)}</Tag>}<Button secondary type="button" onClick={()=>setRange(category,{min:String(s.p10),max:String(s.p90)})}><Sparkles size={14}/>{L('Übernehmen','Prevzemi')}</Button></>:'—'}</td>
+        <td><input aria-label={`${category} min`} type="number" min="1" step="100" value={r.min} onChange={e=>setRange(category,{min:e.target.value})}/></td>
+        <td><input aria-label={`${category} max`} type="number" min="1" step="100" value={r.max} onChange={e=>setRange(category,{max:e.target.value})}/></td>
+        <td><input aria-label={`${category} agreement`} maxLength={255} value={r.agreement} onChange={e=>setRange(category,{agreement:e.target.value})}/></td></tr>;})}</tbody></table></div>}
+      <TextField label={L('Kriterien der Entgeltentwicklung (Art. 6)','Merila za napredovanje v plači (člen 6)')} maxLength={3000} value={progression} onChange={e=>{setProgression(e.target.value);setDirty(true);}} placeholder={L('z. B. Entgeltstufen, Dienstzeiten, Leistungsgespräche, Qualifikationen','npr. plačilni razredi, delovna doba, ocene delovne uspešnosti, kvalifikacije')}/>
+      <div className="button-row"><Button busy={busy} onClick={save} disabled={!dirty}>{L('Speichern','Shrani')}<ArrowRight size={16}/></Button></div></section>
+    <section className="panel"><div className="panel-title"><h3>{L('Dokumente','Dokumenti')}</h3></div>
+      <p>{L('Kriterienblatt für alle Beschäftigten (Art. 6) und Gehaltsangaben für Stellenanzeigen (Art. 5). Die Kriterien je Kategorie stammen aus dem Schritt „Gleichwertige Arbeit“.','List meril za vse zaposlene (člen 6) in podatki o plači za oglase (člen 5). Merila po kategorijah izvirajo iz koraka »Enakovredno delo«.')}</p>
+      <div className="button-row"><Button secondary busy={busy} onClick={()=>file('criteria','pdf')}><Download size={15}/>{L('Kriterienblatt (PDF)','List meril (PDF)')}</Button><Button secondary busy={busy} onClick={()=>file('vacancy','txt')}><Download size={15}/>{L('Anzeigentext (TXT)','Besedilo za oglas (TXT)')}</Button><Button secondary busy={busy} onClick={()=>file('vacancy','pdf')}><Download size={15}/>{L('Anzeigentext (PDF)','Besedilo za oglas (PDF)')}</Button></div></section>
+  </div>;
+}
