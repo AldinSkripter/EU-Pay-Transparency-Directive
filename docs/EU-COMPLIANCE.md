@@ -78,6 +78,20 @@ Stranica "Entgeltspannen & Kriterien":
 
 Raspon određuje poslodavac po objektivnim, rodno neutralnim kriterijima; prijedlog je samo orijentacija. Testovi: `tests/pay-criteria.test.js`.
 
+## Stanje prenošenja po državama (provjereno 2.11.2026.)
+
+Istraživanje je rađeno bez prave tražilice, pa "nije pronađeno" znači "nije moguće provjeriti", ne "sigurno ne postoji". Ponoviti prije svake komercijalne tvrdnje.
+
+| Država | Zakon | Šta je poznato o izvještaju | Kome i kako se predaje |
+| --- | --- | --- | --- |
+| **Njemačka** | Nije donesen, nema objavljenog nacrta. Ministarstvo (BMBFSFJ) priprema nacrt, izmjena postojećeg EntgTranspG. Bundestag, 16.7.2026. | Nije propisano. Stručna komisija (Abschlussbericht, nov. 2025) preporučuje stvarnu plaću za period, varijabilne dijelove definirane negativno, bez proširenja ispod 100 zaposlenih. To su preporuke, ne zakon. | Nije odlučeno. Komisija preporučuje online portal s provjerom podataka i postojeću prijavu (npr. ELSTER) te sučelja prema DATEV-u. |
+| **Austrija** | Nije donesen. Nacrt ministrice Schumann u vladinoj koordinaciji od 6.6.2026., ÖVP i NEOS koče (izvori: ORF, Der Standard). Formalni Ministerialentwurf nije pronađen. | Nacrt: obaveza od 100 zaposlenih, svake 3 godine za 100–249, godišnje od 250; sadržaj kao današnji Einkommensbericht. Definicije (prosjek/medijan, varijabilni dio, 5 %) nisu pronađene. | Nije pronađeno. |
+| **Slovenija** | Nije donesen, nacrt nije pronađen. Ministarstvo "priprema" poseban zakon o jednakom plaćanju i transparentnosti plata (projekt PAY DAY, gov.si). | Nije pronađeno. | Nije pronađeno. |
+
+Zaključak za proizvod: dok države ne objave obrazac, izvještaj ostaje po direktivi (čl. 9(1) a–g, čl. 10, čl. 12(3)). Kad stigne nacionalni obrazac, dodaje se kao novi izlaz, a ako propiše drugačije izračunavanje (npr. varijabilni jaz samo među primaocima), mijenja se `server/pay.js`. Izvori: Bundestag hib 16.7.2026; Drucksache 21/7180; BMBFSFJ Abschlussbericht komisije; ORF 7.6.2026; Der Standard 12.6. i 15.9.2026; gov.si PAY DAY.
+
+Mjesta za ponovnu provjeru: dip.bundestag.de, parlament.gv.at (Ministerialentwürfe), RIS, e-demokracija.gov.si, pisrs.si, dz-rs.si.
+
 ## Šta još ne radi (prioritet P0)
 
 1. **Službena predaja državi.** Za DE, AT i SI nije potvrđen nijedan portal ni shema za novi izvještaj; Austrija nije prenijela direktivu. Izvoz je zato "pripremljen", ne "predan". Ne izmišljati shemu.
