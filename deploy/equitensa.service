@@ -1,0 +1,22 @@
+[Unit]
+Description=Equitensa EU Pay Transparency
+After=network.target postgresql.service
+
+[Service]
+Type=simple
+User=equitensa
+Group=equitensa
+WorkingDirectory=/opt/equitensa
+Environment=NODE_ENV=production
+EnvironmentFile=/opt/equitensa/.env
+ExecStart=/usr/bin/node /opt/equitensa/server/index.js --production
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectSystem=strict
+ProtectHome=true
+UMask=0077
+
+[Install]
+WantedBy=multi-user.target

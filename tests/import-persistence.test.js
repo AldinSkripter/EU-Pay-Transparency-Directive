@@ -1,0 +1,44 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { randomUUID } from 'node:crypto';
+import { readFile,mkdtemp,rm } from 'node:fs/promises';
+import { tmpdir } from 'node:os';
+import { join,resolve,dirname,basename } from 'node:path';
+import { PGlite } from '@electric-sql/pglite';
+import { PostgresStore } from '../server/store.js';
+import { normalizeEmployee } from '../server/pay.js';
+
+test('PostgreSQL engine commits imports, profiles and audits atomically and persists across reopen',async t=>{
+  const directory=await mkdtemp(join(tmpdir(),'equitensa-import-test-'));
+  let db=new PGlite(directory);
+  t.after(async()=>{await db.close();const target=resolve(directory);if(dirname(target)!==resolve(tmpdir())||!basename(target).startsWith('equitensa-import-test-'))throw new Error('UNSAFE_TEST_CLEANUP');await rm(target,{recursive:true,force:true});});
+  const store=new PostgresStore('postgresql://unused');
+  await store.pool.end();
+  const query=async(sql,params)=>{const result=await db.query(sql,params);return {...result,rowCount:result.affectedRows??result.rows.length};};
+  store.pool={query,connect:async()=>({query,release(){}})};
+  for(let pass=0;pass<2;pass++)for(const name of ['001_initial','002_self_service','003_platform_control','004_google_auth','005_import_batches'])await db.exec(await readFile(new URL(`../db/${name}.sql`,import.meta.url),'utf8'));
+  const company={id:randomUUID(),name:'SI payroll',country:'SI'},other={id:randomUUID(),name:'AT payroll',country:'AT'};
+  const actor={id:randomUUID(),company_id:company.id,email:'si@example.test',password_hash:'test'};
+  await store.createAccount(company,actor);await store.createAccount(other,{...actor,id:randomUUID(),company_id:other.id,email:'at@example.test'});
+  const row=normalizeEmployee({internal_id:'001',gender:'F',job_title:'Engineer',worker_category:'Engineering',base_annual:60000,paid_hours_annual:2080,hours_per_week:40},company.id,'a'.repeat(64));
+  const metadata={fingerprint:'a'.repeat(64),fileHash:'b'.repeat(64),structureHash:'c'.repeat(64),actor:actor.id,profile:{mapping:{internal_id:'Employee ID'},decimalSeparator:'.',confirmed:true}};
+  const first=await store.saveSnapshot(company.id,2026,[row],'xlsx',metadata);
+  const replay=await store.saveSnapshot(company.id,2026,[row],'xlsx',metadata);
+  assert.equal(replay.id,first.id);assert.equal(replay.replayed,true);
+  assert.equal((await store.importHistory(company.id,2026)).length,1);
+  assert.equal(await store.importProfile(other.id,metadata.structureHash),null);
+  assert.deepEqual(await store.importHistory(other.id,2026),[]);
+  assert.equal((await store.importProfile(company.id,metadata.structureHash)).version,1);
+  // An unknown actor fails the profile write after snapshot insertion; the entire transaction rolls back.
+  await assert.rejects(store.saveSnapshot(company.id,2026,[{...row,base_annual:61000}],'xml',{...metadata,actor:randomUUID(),fingerprint:'d'.repeat(64),profile:{...metadata.profile,decimalSeparator:','}}),{code:'23503'});
+  assert.equal((await store.latestSnapshot(company.id,2026)).id,first.id);
+  assert.equal((await store.importProfile(company.id,metadata.structureHash)).version,1);
+  assert.equal((await store.importHistory(company.id,2026)).length,1);
+  const changed=await store.saveSnapshot(company.id,2026,[{...row,base_annual:61000}],'xlsx',{...metadata,fingerprint:'e'.repeat(64),profile:{...metadata.profile,mapping:{internal_id:'Personalnummer'}}});
+  assert.notEqual(changed.id,first.id);assert.equal((await store.importProfile(company.id,metadata.structureHash)).version,2);
+  await db.close();db=new PGlite(directory);
+  assert.equal((await store.latestSnapshot(company.id,2026)).id,changed.id);
+  assert.equal((await store.importProfile(company.id,metadata.structureHash)).document.mapping.internal_id,'Personalnummer');
+  assert.equal((await store.importHistory(company.id,2026)).length,2);
+  assert.equal((await query("SELECT count(*)::int AS n FROM audit_events WHERE company_id=$1 AND action='import_completed'",[company.id])).rows[0].n,2);
+});

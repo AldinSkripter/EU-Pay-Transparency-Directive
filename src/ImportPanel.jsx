@@ -1,0 +1,57 @@
+import React,{useEffect,useState} from 'react';
+import {Upload,Download,ArrowRight} from 'lucide-react';
+import {api,Button,ArrowButton,Tag,TextField,CheckField,Notice,download,template,errorText} from './ui';
+
+const required=['internal_id','gender','job_title','worker_category','base_annual','paid_hours_annual','hours_per_week'];
+const encodeFile=file=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('INVALID_FILE'));reader.onload=()=>resolve({name:file.name,base64:String(reader.result).split(',')[1]});reader.readAsDataURL(file);});
+
+export default function ImportPanel({L,year,perform,busy,onImported,snapshot}) {
+  const [csv,setCsv]=useState(''),[file,setFile]=useState(null),[preview,setPreview]=useState(null),[mapping,setMapping]=useState({});
+  const [sheet,setSheet]=useState(''),[headerRow,setHeaderRow]=useState(1),[recordPath,setRecordPath]=useState(''),[encoding,setEncoding]=useState('');
+  const [decimalSeparator,setDecimalSeparator]=useState('.'),[confirmed,setConfirmed]=useState(false),[history,setHistory]=useState([]),[revision,setRevision]=useState(0);
+  const [choices,setChoices]=useState(null);
+  useEffect(()=>{setPreview(null);setConfirmed(false);let current=true;api(`/import/history?year=${year}`).then(r=>{if(current)setHistory(r.batches);}).catch(()=>{if(current)setHistory([]);});return()=>{current=false;};},[year,revision]);
+  const invalidate=()=>{setPreview(null);setConfirmed(false);};
+  const fields=[['internal_id',L('Interne ID','Interni ID')],['gender',L('Geschlecht','Spol')],['job_title',L('Tätigkeit','Delovno mesto')],['worker_category',L('Gleichwertige Kategorie','Enakovredna kategorija')],['job_category_kv',L('KV-Stufe (optional)','Stopnja KP (neobvezno)')],['base_annual',L('Jahresgrundvergütung (€)','Letno osnovno plačilo (€)')],['bonuses_annual',L('Jährliche variable Vergütung (€, optional)','Letno variabilno plačilo (€, neobvezno)')],['paid_hours_annual',L('Bezahlte Jahresstunden','Letne plačane ure')],['hours_per_week',L('Wochenstunden','Tedenske ure')]];
+  const payload=()=>({...file?{file}:{csv},year,sheet:sheet||undefined,headerRow:Number(headerRow),recordPath:recordPath||undefined,encoding:encoding||undefined});
+  const choose=selected=>perform(async()=>{
+    if(!selected)return;
+    if(selected.size>4*1024*1024)throw new Error('PAYLOAD_TOO_LARGE');
+    const uploaded=await encodeFile(selected);setFile(uploaded);setCsv('');setSheet('');setHeaderRow(1);setRecordPath('');setChoices(null);invalidate();
+  });
+  const showPreview=()=>perform(async()=>{
+    invalidate();const result=await api('/import/preview',payload());setChoices(result);
+    if(result.selectionRequired)return;
+    setPreview(result);setMapping(result.mapping||{});
+    setDecimalSeparator(result.savedProfile?.decimalSeparator||result.context?.decimalSeparator||'.');
+    if(result.sheet)setSheet(result.sheet);if(result.recordPath)setRecordPath(result.recordPath);
+  });
+  const warnings={REPORTING_PERIOD_NOT_IN_FILE:L('Kein Berichtsjahr in der Datei: Jahresbezug bestätigen.','Datoteka nima leta poročanja: potrdite letno obdobje.'),CURRENCY_NOT_IN_FILE:L('Keine Währung in der Datei: EUR bestätigen.','Datoteka nima valute: potrdite EUR.'),AMBIGUOUS_DECIMAL_FORMAT:L('Uneinheitliche Zahlenformate: Daten vor dem Import korrigieren.','Neenotne oblike števil: pred uvozom popravite podatke.'),PAY_BASIS_REQUIRES_REVIEW:L('Bruttobetrag ist nicht automatisch Jahresgrundvergütung. Bedeutung und Zeitraum prüfen.','Bruto znesek ni samodejno letno osnovno plačilo. Preverite pomen in obdobje.')};
+  return <section className="panel import-panel">
+    {snapshot&&<Notice>{L('Ein neuer Import ersetzt den aktuellen Arbeitsdatenstand. Kategorien und Freigaben erneut prüfen. Ein identischer erneuter Import erstellt keinen neuen Datenstand.','Nov uvoz nadomesti trenutne podatke. Ponovno preverite kategorije in potrditve. Enak ponovni uvoz ne ustvari novega podatkovnega posnetka.')}</Notice>}
+    <div className="import-intro"><span className="large-icon"><Upload size={27}/></span><div><h3>{L('Gehaltsdaten importieren','Uvoz podatkov o plačah')}</h3><p>{L('XLSX, XLS, XML, CSV, TXT oder TSV · bis 4 MB · eine Person je Jahresdatensatz in EUR.','XLSX, XLS, XML, CSV, TXT ali TSV · do 4 MB · en letni zapis na zaposlenega v EUR.')}</p></div><Button secondary onClick={()=>download(template,'equitensa-template.csv')}><Download size={16}/>{L('Vorlage','Predloga')}</Button></div>
+    <label className="upload-zone" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(!busy)choose(e.dataTransfer.files?.[0]);}}><Upload size={25}/><strong>{file?.name||L('Datei auswählen oder hier ablegen','Izberite ali spustite datoteko')}</strong><span>{L('Inhalt wird geprüft; der Dateiname bestimmt das Format nicht.','Preveri se vsebina; ime datoteke ne določa oblike.')}</span><input type="file" disabled={busy} accept=".xlsx,.xls,.xml,.csv,.txt,.tsv" onChange={e=>{choose(e.target.files?.[0]);e.target.value='';}}/></label>
+    {file&&<Button secondary disabled={busy} onClick={()=>{setFile(null);setChoices(null);invalidate();}}>{L('Datei entfernen','Odstrani datoteko')}</Button>}
+    {!file&&<TextField disabled={busy} label={L('Oder CSV / TXT einfügen','Ali prilepite CSV / TXT')} value={csv} placeholder={template} onChange={e=>{setCsv(e.target.value);setChoices(null);invalidate();}} spellCheck="false"/>}
+    <div className="form-grid"><label className="field"><span>{L('Textkodierung','Kodiranje besedila')}</span><select disabled={busy} value={encoding} onChange={e=>{setEncoding(e.target.value);invalidate();}}><option value="">UTF-8 / BOM</option>{['utf-8','utf-16le','utf-16be','windows-1250','windows-1252'].map(e=><option key={e}>{e}</option>)}</select></label>
+    <label className="field"><span>{L('Excel: Zeile der Spaltenüberschriften','Excel: vrstica z naslovi stolpcev')}</span><input type="number" disabled={busy} min={1} max={50} value={headerRow} onChange={e=>{setHeaderRow(e.target.value);invalidate();}}/></label></div>
+    {!!choices?.sheets?.length&&<label className="field"><span>{L('Excel-Arbeitsblatt','Excelov delovni list')}</span><select disabled={busy} value={sheet} onChange={e=>{setSheet(e.target.value);invalidate();}}><option value="">{L('Arbeitsblatt auswählen','Izberite delovni list')}</option>{choices.sheets.map(s=><option key={s}>{s}</option>)}</select></label>}
+    {!!choices?.recordPaths?.length&&<label className="field"><span>{L('XML: Datensatzpfad','XML: pot do zapisa')}</span><select disabled={busy} value={recordPath} onChange={e=>{setRecordPath(e.target.value);invalidate();}}><option value="">{L('Datensätze auswählen','Izberite zapise')}</option>{choices.recordPaths.map(p=><option key={p}>{p}</option>)}</select></label>}
+    {choices?.selectionRequired&&<Notice>{L('Bitte Arbeitsblatt oder XML-Datensatzpfad wählen und Vorschau erneut öffnen.','Izberite delovni list ali pot XML in ponovno odprite predogled.')}</Notice>}
+    <Button secondary disabled={!file&&!csv.trim()} busy={busy} onClick={showPreview}>{L('Vorschau & Spaltenzuordnung','Predogled in preslikava stolpcev')}<ArrowRight size={16}/></Button>
+    {preview&&<>
+      <div className="panel-title"><h3>{L('Spalten zuordnen','Preslikajte stolpce')}</h3><Tag>{preview.count} · {preview.format.toUpperCase()}</Tag></div>
+      {preview.savedProfile&&<Notice tone="success">{L('Gespeicherte Zuordnung geladen','Naložena shranjena preslikava')} · v{preview.savedProfile.version}. {L('Bitte erneut prüfen und bestätigen.','Ponovno preverite in potrdite.')}</Notice>}
+      <Notice>{L('Berichtsland der Firma','Država poročanja podjetja')}: <strong>{preview.context?.reportingCountry}</strong> · {year} · EUR. {L('Die Dateisprache ändert das Berichtsland nicht.','Jezik datoteke ne spremeni države poročanja.')}</Notice>
+      {preview.context?.warnings?.map(code=><Notice key={code}>{warnings[code]||code}</Notice>)}
+      {preview.contextErrors?.map((issue,i)=><Notice tone="error" key={i}>{L('Zeile','Vrstica')} {issue.row} · {issue.column}: {errorText({message:issue.error},L)}</Notice>)}
+      <label className="field"><span>{L('Dezimaltrennzeichen für alle Zahlen','Decimalno ločilo za vsa števila')}</span><select disabled={busy} value={decimalSeparator} onChange={e=>{setDecimalSeparator(e.target.value);setConfirmed(false);}}><option value=".">{L('Punkt: 60000.50','Pika: 60000.50')}</option><option value=",">{L('Komma: 60000,50','Vejica: 60000,50')}</option></select></label>
+      <div className="mapping-grid">{fields.map(([field,label])=><label className="field" key={field}><span>{label}{required.includes(field)?' *':''}</span><select disabled={busy} value={mapping[field]||''} onChange={e=>{setMapping(m=>({...m,[field]:e.target.value}));setConfirmed(false);}}><option value="">{L('Spalte auswählen','Izberite stolpec')}</option>{preview.headers.map(h=><option key={h}>{h}</option>)}</select></label>)}</div>
+      <h3>{L('Vorschau der ersten 30 Zeilen','Predogled prvih 30 vrstic')}</h3><div className="table-scroll"><table><thead><tr>{preview.headers.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{preview.rows.map((row,i)=><tr key={i}>{preview.headers.map(h=><td key={h}>{row[h]}</td>)}</tr>)}</tbody></table></div>
+      <CheckField disabled={busy} checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}>{L('Ich bestätige die Zuordnung, EUR, Jahresbeträge und bezahlte Stunden für dieses Berichtsjahr. Diese Zuordnung für meine Firma speichern.','Potrjujem preslikavo, EUR, letne zneske in plačane ure za to leto. Preslikavo shrani za moje podjetje.')}</CheckField>
+      <Notice>{L('IDs werden mandantenbezogen pseudonymisiert. Gespeichert werden Datenstand, Datei-Prüfsumme und freigegebene Zuordnung. Die Originaldatei wird nicht gespeichert.','ID-ji se psevdonimizirajo za podjetje. Shranijo se podatkovni posnetek, kontrolna vsota datoteke in potrjena preslikava. Izvirna datoteka se ne shrani.')}</Notice>
+      <ArrowButton busy={busy} disabled={!confirmed||!!preview.contextErrors?.length||required.some(f=>!mapping[f])} onClick={()=>perform(async()=>{await api('/import',{...payload(),mapping,decimalSeparator,contextConfirmed:confirmed});setFile(null);setCsv('');setChoices(null);invalidate();setRevision(v=>v+1);await onImported();})}>{L(`Daten für ${year} prüfen & importieren`,`Preverite in uvozite podatke za ${year}`)}</ArrowButton>
+    </>}
+    {history.length>0&&<><h3>{L('Importverlauf','Zgodovina uvozov')}</h3><div className="table-scroll"><table><thead><tr><th>{L('Zeitpunkt','Čas')}</th><th>{L('Format','Oblika')}</th><th>{L('Zuordnung','Preslikava')}</th><th>{L('Datei-Prüfsumme','Kontrolna vsota datoteke')}</th></tr></thead><tbody>{history.map(batch=><tr key={batch.id}><td>{new Date(batch.created_at).toLocaleString()}</td><td>{batch.format}</td><td>v{batch.mapping_version}</td><td title={batch.file_hash}>{batch.file_hash.slice(0,12)}…</td></tr>)}</tbody></table></div></>}
+  </section>;
+}

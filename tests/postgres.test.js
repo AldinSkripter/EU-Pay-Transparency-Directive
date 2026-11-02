@@ -1,0 +1,80 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import { randomUUID, randomBytes } from 'node:crypto';
+import { readFile } from 'node:fs/promises';
+import { PostgresStore } from '../server/store.js';
+import { normalizeEmployee } from '../server/pay.js';
+import { PostgresControlStore } from '../server/control-store.js';
+import { addOwner } from '../server/owner-auth.js';
+
+test('PostgreSQL migration, persistence, tenant constraints and rollback', { skip: !process.env.POSTGRES_TEST_URL }, async t => {
+  const connectionString=process.env.POSTGRES_TEST_URL;
+  let store=new PostgresStore(connectionString);
+  const companyA={id:randomUUID(),name:'Integration QA A',country:'DE'},companyB={id:randomUUID(),name:'Integration QA B',country:'SI'};
+  t.after(async()=>{
+    await store.pool.query('DELETE FROM companies WHERE id=ANY($1::uuid[])',[[companyA.id,companyB.id]]);
+    await store.close();
+  });
+  await store.pool.query(await readFile(new URL('../db/001_initial.sql',import.meta.url),'utf8'));
+  await store.pool.query(await readFile(new URL('../db/002_self_service.sql',import.meta.url),'utf8'));
+  await store.pool.query(await readFile(new URL('../db/003_platform_control.sql',import.meta.url),'utf8'));
+  await store.pool.query(await readFile(new URL('../db/004_google_auth.sql',import.meta.url),'utf8'));
+  await store.pool.query(await readFile(new URL('../db/005_import_batches.sql',import.meta.url),'utf8'));
+  const user={id:randomUUID(),company_id:companyA.id,email:`${randomUUID()}@integration.invalid`,password_hash:'test-only'};
+  await store.createAccount(companyA,user);
+  const googleSub=`google-test-${randomUUID()}`;
+  await store.attachGoogle(user.id,googleSub);
+  assert.equal((await store.findGoogleUser(googleSub)).id,user.id);
+  const flowHash=randomBytes(32).toString('hex'),bindingHash=randomBytes(32).toString('hex');
+  await store.saveAuthFlow(flowHash,bindingHash,{type:'authorization',nonce:'test-only'});
+  assert.equal(await store.authFlow(flowHash,'0'.repeat(64),true),null);
+  const consumed=await Promise.all([store.authFlow(flowHash,bindingHash,true),store.authFlow(flowHash,bindingHash,true)]);
+  assert.equal(consumed.filter(Boolean).length,1);
+  await store.createAccount(companyB,{id:randomUUID(),company_id:companyB.id,email:`${randomUUID()}@integration.invalid`,password_hash:'test-only'});
+  const employee=normalizeEmployee({internal_id:'qa',gender:'M',job_title:'Engineer',worker_category:'Engineering L3',base_annual:42000,bonuses_annual:2500,paid_hours_annual:2002,hours_per_week:38.5},companyA.id,'a'.repeat(64));
+  const snapshot=await store.saveSnapshot(companyA.id,2026,[employee],'integration-test');
+  await store.createSession('a'.repeat(64),user.id,new Date(Date.now()+60_000));
+  await store.saveWorkflow(companyA.id,2026,{snapshotId:snapshot.id,approval:{manager:'QA'}});
+  const order={id:randomUUID(),company_id:companyA.id,plan:'prepare',interval:'annual',mode:'stripe',status:'pending'};
+  await store.createOrder(order);await store.linkOrder(order.id,`cs_${order.id}`);
+  await store.applyBillingEvent(`evt_${order.id}`,{session:`cs_${order.id}`,subscription:`sub_${order.id}`,status:'active',created:100});
+  assert.equal((await store.session('a'.repeat(64))).company.id,companyA.id);
+  assert.equal((await store.findUser(user.email)).id,user.id);
+  await store.close(); store=new PostgresStore(connectionString);
+  const persisted=await store.latestSnapshot(companyA.id,2026);
+  assert.equal((await store.getWorkflow(companyA.id,2026)).snapshotId,snapshot.id);
+  assert.deepEqual(await store.getWorkflow(companyB.id,2026),{});
+  assert.equal((await store.activeOrder(companyA.id)).status,'active');
+  assert.equal(await store.activeOrder(companyB.id),null);
+  await store.applyBillingEvent(`evt_upgrade_${order.id}`,{subscription:`sub_${order.id}`,status:'active',plan:'growth',interval:'monthly',created:150});
+  assert.equal((await store.activeOrder(companyA.id)).plan,'growth');
+  assert.equal((await store.activeOrder(companyA.id)).interval,'monthly');
+  await store.applyBillingEvent(`evt_cancel_${order.id}`,{subscription:`sub_${order.id}`,status:'cancelled',created:300});
+  await store.applyBillingEvent(`evt_old_${order.id}`,{subscription:`sub_${order.id}`,status:'active',created:200});
+  assert.equal((await store.activeOrder(companyA.id)).status,'cancelled');
+  assert.equal(persisted.id,snapshot.id);assert.equal(persisted.rows[0].base_annual,42000);assert.equal(persisted.rows[0].hours_per_week,38.5);
+  assert.equal(await store.latestSnapshot(companyB.id,2026),null);
+  await assert.rejects(store.saveSnapshot(companyA.id,2026,[employee,employee],'duplicate-test'),{code:'23505'});
+  assert.equal((await store.latestSnapshot(companyA.id,2026)).id,snapshot.id);
+  await assert.rejects(store.pool.query('INSERT INTO employees(company_id,snapshot_id,anonymized_id,gender,job_title,worker_category,base_annual,bonuses_annual,paid_hours_annual,hours_per_week,base_hourly,variable_hourly,total_hourly,fte_hourly_rate) VALUES($1,$2,$3,\'M\',\'QA\',\'QA\',1,0,1,1,1,0,1,1)',[companyB.id,snapshot.id,'b'.repeat(64)]),{code:'23503'});
+  await store.deleteSession('a'.repeat(64));assert.equal(await store.session('a'.repeat(64)),null);
+  assert.ok((await store.adminOverview()).companies>=2);
+  assert.ok((await store.adminCompanies('Integration QA A')).companies.some(c=>c.id===companyA.id));
+  assert.equal((await store.order(order.id)).status,'cancelled');
+  // POSTGRES_TEST_URL points to the dedicated test database. Restore its control row.
+  const previous=(await store.pool.query('SELECT ciphertext FROM platform_control WHERE id=1')).rows[0];
+  try {
+    await store.pool.query('DELETE FROM platform_control WHERE id=1');
+    const key=randomBytes(32),control=new PostgresControlStore(store.pool,key);
+    const owner=await addOwner(control,'qa-owner@integration.invalid','integration-owner-password!');
+    await control.mutate(s=>{s.settings={secretKey:'sk_test_IntegrationOnly'};s.revision=1;});
+    const persistedControl=await new PostgresControlStore(store.pool,key).read();
+    assert.equal(persistedControl.owners[0].id,owner.id);assert.equal(persistedControl.settings.secretKey,'sk_test_IntegrationOnly');
+    await assert.rejects(control.mutate(s=>{s.revision=99;throw new Error('qa-rollback');}),/qa-rollback/);
+    assert.equal((await control.read()).revision,1);
+    assert.doesNotMatch((await store.pool.query('SELECT ciphertext FROM platform_control WHERE id=1')).rows[0].ciphertext,/IntegrationOnly|integration-owner-password/);
+  } finally {
+    if(previous)await store.pool.query('INSERT INTO platform_control(id,ciphertext) VALUES(1,$1) ON CONFLICT(id) DO UPDATE SET ciphertext=$1',[previous.ciphertext]);
+    else await store.pool.query('DELETE FROM platform_control WHERE id=1');
+  }
+});
