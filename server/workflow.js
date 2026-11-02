@@ -14,6 +14,8 @@ export function validateWorkflow(input, snapshot, previous = {}) {
   const count = Number(input.profile?.headcount);
   const document = { snapshotId:snapshot.id, profile:{ legalName:text(input.profile?.legalName,255), headcount:Number.isInteger(count) && count > 0 && count <= 1000000 ? count : null, payrollComplete:input.profile?.payrollComplete === true }, classification, reviews,
     approval:{ manager:text(input.approval?.manager,255), representatives:text(input.approval?.representatives), confirmed:input.approval?.confirmed === true, consulted:input.approval?.consulted === true },
+    // Art. 10(2)(e) and (g): content of the joint pay assessment that cannot be derived from pay data.
+    assessment:{ previousMeasures:text(input.assessment?.previousMeasures), leaveReturn:Object.fromEntries(categories.map(category=>[category,text(input.assessment?.leaveReturn?.[category])])) },
     reportingDate:validDate(input.reportingDate) ? input.reportingDate : '' };
   if (previous.snapshotId===snapshot.id && previous.approval?.confirmed && document.approval.confirmed && ['profile','classification','reviews'].some(key=>JSON.stringify(previous[key])!==JSON.stringify(document[key]))) {
     document.approval.confirmed=false;document.approval.consulted=false;

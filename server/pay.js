@@ -70,10 +70,16 @@ function groupMetrics(rows, minimum = 5) {
     female_variable_receivers: suppressed ? null : round(females.filter(r => r.bonuses_annual > 0).length / females.length * 100),
   };
 }
-export function analyze(rows) {
-  const overall = groupMetrics(rows);
+// Art. 12(3): Member States may restrict workers' access where pay of an identifiable worker would be revealed,
+// but for monitoring under Art. 29 the information must be available without restriction. So small groups are
+// protected (fewer than `minimum` of either sex) for workers and the public only; the monitoring body and the
+// employer's own view get the real values.
+export const SMALL_GROUP_MINIMUM = 5;
+export function analyze(rows, { suppress = true } = {}) {
+  const minimum = suppress ? SMALL_GROUP_MINIMUM : 0;
+  const overall = groupMetrics(rows, minimum);
   const groups = [...new Set(rows.map(r => r.worker_category))].sort().map(category => {
-    const metrics = groupMetrics(rows.filter(r => r.worker_category === category));
+    const metrics = groupMetrics(rows.filter(r => r.worker_category === category), minimum);
     return { category, ...metrics };
   });
   // Stable identifier tie-breaker makes quartile boundaries reproducible. Other gender
@@ -82,7 +88,7 @@ export function analyze(rows) {
   const quartiles = Array.from({ length: 4 }, (_, i) => {
     const band = sorted.slice(Math.floor(i * sorted.length / 4), Math.floor((i + 1) * sorted.length / 4));
     const males = band.filter(r => r.gender === 'M').length, females = band.length - males;
-    const suppressed = males < 5 || females < 5;
+    const suppressed = males < minimum || females < minimum;
     return { quartile: i + 1, count: band.length, suppressed, male_percent: suppressed ? null : round(males / band.length * 100), female_percent: suppressed ? null : round(females / band.length * 100) };
   });
   return { ...overall, groups, quartiles, review_count: groups.filter(g => g.review_required).length, methodology: 'annual-pay / declared-annual-paid-hours; unadjusted M/F; minimum subgroup 5; stable quartile ties; version 1' };

@@ -13,6 +13,7 @@ import { normalizeEmployee, analyze, reportingSchedule } from './pay.js';
 import { providers } from './hris.js';
 import { demoRows } from './demo.js';
 import { reportCsv, reportXml, reportPdf, reportText, reportJson, reportXlsx } from './reports.js';
+import { assessmentAudiences, assessmentJson, assessmentText, assessmentPdf, assessmentCsv, assessmentXlsx, assessmentXml } from './assessment.js';
 import { validateWorkflow, readiness } from './workflow.js';
 import { billingRoutes, plans, verifyStripeEvent, subscriptionPlan } from './billing.js';
 import { regulatory, reportingPlan } from './regulatory.js';
@@ -219,6 +220,11 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     const audience=req.query.audience || 'internal';
     if (!regulatory.recipients.some(r=>r.id===audience)) return res.status(400).json({error:'INVALID_AUDIENCE'});
     snapshot.audience=audience;
+    const type=req.query.type==='assessment'?'assessment':'report';
+    if (type==='assessment' && !assessmentAudiences.includes(audience)) return res.status(400).json({error:'INVALID_AUDIENCE'});
+    // Art. 9(9) and Art. 29(3)(c): the previous four years stay available (not in the public summary).
+    snapshot.history=[];
+    if (audience!=='public') for (let back=1;back<=4 && year-back>=2000;back++) {const previous=await store.latestSnapshot(company.id,year-back);if(previous)snapshot.history.push({year:year-back,rows:previous.rows});}
     snapshot.workflow=await store.getWorkflow(company.id,year);
     if (snapshot.workflow.snapshotId !== snapshot.id) snapshot.workflow={};
     if (req.query.prepared === 'true') {
@@ -230,12 +236,13 @@ export function createApp({ store, demo = false, secret, secure = false, origins
       snapshot.prepared=true;
     }
     const mime = { xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',json:'application/json',csv: 'text/csv', xml: 'application/xml', pdf: 'application/pdf', txt: 'text/plain' };
-    const output = format === 'xlsx' ? reportXlsx(company,snapshot) : format === 'json' ? reportJson(company,snapshot) : format === 'pdf' ? await reportPdf(company, snapshot) : format === 'csv' ? reportCsv(company, snapshot) : format === 'xml' ? reportXml(company, snapshot) : reportText(company, snapshot);
-    await store.audit(company.id, snapshot.prepared?'prepared_report_exported':'draft_exported', { format, audience, snapshot_id: snapshot.id, rules_version:regulatory.version, workflow:snapshot.workflow, user_id:req.session.user.id });
+    const writers = type==='assessment' ? {xlsx:assessmentXlsx,json:assessmentJson,pdf:assessmentPdf,csv:assessmentCsv,xml:assessmentXml,txt:assessmentText} : {xlsx:reportXlsx,json:reportJson,pdf:reportPdf,csv:reportCsv,xml:reportXml,txt:reportText};
+    const output = await writers[format](company,snapshot);
+    await store.audit(company.id, snapshot.prepared?'prepared_report_exported':'draft_exported', { format, audience, type, snapshot_id: snapshot.id, rules_version:regulatory.version, workflow:snapshot.workflow, user_id:req.session.user.id });
     res.setHeader('X-Report-Status', snapshot.prepared?'PREPARED_INTERNAL_UNVERIFIED':'DRAFT_UNVERIFIED');
     res.setHeader('X-Report-Rules',regulatory.version);
     res.setHeader('X-Report-Recipient',audience);
-    res.setHeader('Content-Disposition', `attachment; filename="equitensa-${company.country}-${year}-${audience}-${snapshot.prepared?'prepared':'draft'}.${format}"`);
+    res.setHeader('Content-Disposition', `attachment; filename="equitensa-${company.country}-${year}-${audience}${type==='assessment'?'-assessment':''}-${snapshot.prepared?'prepared':'draft'}.${format}"`);
     res.type(mime[format]).send(output);
   });
   app.use('/api', (req, res) => res.status(404).json({ error: 'NOT_FOUND' }));
