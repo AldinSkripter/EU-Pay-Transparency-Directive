@@ -8,6 +8,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createApp } from '../server/app.js';
 import { MemoryStore } from '../server/store.js';
+import { verifyAll } from './helpers.js';
 import { MemoryControlStore,FileControlStore,runtimeControl } from '../server/control-store.js';
 import { addOwner,totp,completeOwnerSetup } from '../server/owner-auth.js';
 import { hashToken } from '../server/auth.js';
@@ -33,7 +34,7 @@ async function fixture(t,options={}) {
 test('owner bootstrap is one-time, tenant cookies cannot become owner sessions, and secrets never leave masked views',async t=>{
   const {store,control,request,login}=await fixture(t),token=randomBytes(32).toString('hex');
   await control.mutate(s=>{s.setup={tokenHash:hashToken(token),expiresAt:Date.now()+100000};});
-  const customer=await request('/auth/register',null,{email:'customer@example.com',password,companyName:'Customer GmbH',role:'owner'});
+  const customer=await request('/auth/register',null,{email:'customer@example.com',password,companyName:'Customer GmbH',country:'DE',role:'owner'});verifyAll(store);
   const tenantCookie=customer.headers.get('set-cookie').split(';')[0];
   assert.equal((await request('/admin/overview',tenantCookie)).status,401);
   assert.equal((await request('/admin/payments',null)).status,401);
@@ -79,7 +80,7 @@ test('verified admin settings immediately drive checkout, signed activation, sam
   const saved=await request('/admin/payments',owner,config);assert.equal(saved.status,200,await saved.clone().text());const view=await saved.json();assert.equal(view.revision,1);assert.equal(view.secretKeyConfigured,true);assert.equal(view.lastWebhook,null);
   assert.doesNotMatch(JSON.stringify(view),/sk_test_|whsec_|Secret123|Signing123/);
   assert.equal((await request('/admin/payments',owner,config)).status,409);
-  const registered=await request('/auth/register',null,{email:'buyer@example.com',password,companyName:'Buyer GmbH',country:'AT'});const customer=registered.headers.get('set-cookie').split(';')[0];
+  const registered=await request('/auth/register',null,{email:'buyer@example.com',password,companyName:'Buyer GmbH',country:'AT'});verifyAll(store);const customer=registered.headers.get('set-cookie').split(';')[0];
   const checkout=await marketRequest('equitensa.at','/billing/checkout',customer,{plan:'prepare',interval:'annual',accepted:true});assert.equal(checkout.status,201);
   assert.equal(checkoutBody.get('success_url'),'https://equitensa.at/?checkout=success');
   assert.equal(checkoutBody.get('line_items[0][price]'),config.prices.prepare_annual);

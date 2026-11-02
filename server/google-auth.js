@@ -84,10 +84,10 @@ export function googleRoutes(app,{store,control,secure,authLimit,googleFetch=fet
       await valid(req,flow);
       if(!await store.authFlow(hashToken(browserToken(req)),binding(req),true))throw new Error('GOOGLE_FLOW_EXPIRED');
       let user=existing;
-      if(existing)await store.attachGoogle(existing.id,flow.sub);
+      if(existing){await store.attachGoogle(existing.id,flow.sub);if(!existing.email_verified_at)await store.updateUser(existing.id,{email_verified_at:new Date()});}
       else {
         const company={id:randomUUID(),name:req.body.companyName.trim(),country:req.body.country};
-        user={id:randomUUID(),company_id:company.id,email:flow.email,password_hash:null,google_sub:flow.sub,role:'hr_manager'};
+        user={id:randomUUID(),company_id:company.id,email:flow.email,password_hash:null,google_sub:flow.sub,role:'hr_manager',email_verified_at:new Date()};
         await store.createAccount(company,user);
       }
       const old=sessionToken(req);if(old)await store.deleteSession(hashToken(old));

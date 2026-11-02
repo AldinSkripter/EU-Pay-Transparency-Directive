@@ -16,7 +16,7 @@ test('PostgreSQL engine commits imports, profiles and audits atomically and pers
   await store.pool.end();
   const query=async(sql,params)=>{const result=await db.query(sql,params);return {...result,rowCount:result.affectedRows??result.rows.length};};
   store.pool={query,connect:async()=>({query,release(){}})};
-  for(let pass=0;pass<2;pass++)for(const name of ['001_initial','002_self_service','003_platform_control','004_google_auth','005_import_batches'])await db.exec(await readFile(new URL(`../db/${name}.sql`,import.meta.url),'utf8'));
+  for(let pass=0;pass<2;pass++)for(const name of ['001_initial','002_self_service','003_platform_control','004_google_auth','005_import_batches','006_payroll_ledger','007_account_security'])await db.exec(await readFile(new URL(`../db/${name}.sql`,import.meta.url),'utf8'));
   const company={id:randomUUID(),name:'SI payroll',country:'SI'},other={id:randomUUID(),name:'AT payroll',country:'AT'};
   const actor={id:randomUUID(),company_id:company.id,email:'si@example.test',password_hash:'test'};
   await store.createAccount(company,actor);await store.createAccount(other,{...actor,id:randomUUID(),company_id:other.id,email:'at@example.test'});

@@ -1,7 +1,9 @@
 import express from 'express';
 import helmet from 'helmet';
 import { rateLimit } from 'express-rate-limit';
-import { randomUUID, createHash } from 'node:crypto';
+import { randomUUID, randomBytes, createHash } from 'node:crypto';
+import { createAccountService } from './account.js';
+import { MemoryMailer } from './mailer.js';
 import { parseImportInput } from './file-parser.js';
 import { payrollRoutes } from './payroll-routes.js';
 import { parseDelimited, suggestMapping, mapImportRecord, validateMapping, inspectImport, validateImportContext } from './importer.js';
@@ -20,7 +22,7 @@ import { effectivePayment } from './payment-config.js';
 import {defaultGoogle,googleForRequest} from './google-config.js';
 import {googleRoutes} from './google-auth.js';
 
-export function createApp({ store, demo = false, secret, secure = false, origins = [], billing = {}, control = new MemoryControlStore(), stripeFetch = fetch, googleFetch = fetch }) {
+export function createApp({ store, demo = false, secret, secure = false, origins = [], billing = {}, control = new MemoryControlStore(), stripeFetch = fetch, googleFetch = fetch, mailer = new MemoryMailer(), accountKey = randomBytes(32) }) {
   const app = express();
   app.disable('x-powered-by');
   app.use(helmet({ contentSecurityPolicy: secure ? undefined : false }));
@@ -65,15 +67,20 @@ export function createApp({ store, demo = false, secret, secure = false, origins
   app.get('/api/health', (req, res) => res.json({ status: 'ok', mode: demo ? 'demo' : 'database' }));
   app.get('/api/regulatory', (req,res)=>res.json(regulatory));
   const authLimit = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false });
+  const account = createAccountService({ store, mailer, accountKey });
   googleRoutes(app,{store,control,secure,authLimit,googleFetch});
+  account.publicRoutes(app, authLimit);
   app.post('/api/auth/register', authLimit, async (req, res) => {
     const { email, password, companyName } = req.body;
     if (typeof email !== 'string' || email.length > 255 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || typeof password !== 'string' || password.length < 12 || password.length > 128 || typeof companyName !== 'string' || !companyName.trim() || companyName.length > 255) return res.status(400).json({ error: 'INVALID_REGISTRATION' });
-    const country = req.body.country || req.marketContext.country;
+    // The reporting jurisdiction is chosen explicitly. The domain only picks the display language,
+    // so a Slovenian company on equitensa.de still gets Slovenian rules and reports.
+    const country = req.body.country;
     if (!markets[country]) return res.status(400).json({error:'INVALID_COUNTRY'});
     const company = { id: randomUUID(), name: companyName.trim(), country };
-    const user = { id: randomUUID(), company_id: company.id, email: email.toLowerCase(), password_hash: await hashPassword(password), role: 'hr_manager' };
+    const user = { id: randomUUID(), company_id: company.id, email: email.trim().toLowerCase(), password_hash: await hashPassword(password), role: 'hr_manager', email_verified_at: null };
     await store.createAccount(company, user);
+    await account.sendToken(user, 'verify', country, req.get('origin'));
     await establishSession(store, res, user.id, secure);
     res.status(201).json({ company });
   });
@@ -84,6 +91,10 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     // Scrypt runs for unknown users too, limiting account enumeration via timing.
     const encoded = user?.password_hash || '00000000000000000000000000000000:' + '00'.repeat(64);
     if (!await verifyPassword(password, encoded) || !user) return res.status(401).json({ error: 'INVALID_LOGIN' });
+    if (user.mfa_secret_enc) {
+      if (!req.body.code) return res.status(401).json({ error: 'MFA_REQUIRED' });
+      if (!await account.consumeMfa(user, req.body.code)) return res.status(401).json({ error: 'INVALID_MFA_CODE' });
+    }
     await establishSession(store, res, user.id, secure); res.json({ ok: true });
   });
   app.post('/api/demo', authLimit, async (req, res) => {
@@ -91,7 +102,7 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     const country = req.body.country || req.marketContext.country;
     if (!markets[country]) return res.status(400).json({ error: 'INVALID_COUNTRY' });
     const company = { id: randomUUID(), name: 'Acme Europe', country };
-    const user = { id: randomUUID(), company_id: company.id, email: `${randomUUID()}@demo.invalid`, role: 'hr_manager', password_hash: '' };
+    const user = { id: randomUUID(), company_id: company.id, email: `${randomUUID()}@demo.invalid`, role: 'hr_manager', password_hash: '', email_verified_at: new Date() };
     await store.createAccount(company, user);
     await store.saveSnapshot(company.id, 2026, demoRows(company.id, secret), 'synthetic-demo');
     const oldToken = sessionToken(req); if (oldToken) await store.deleteSession(hashToken(oldToken));
@@ -111,11 +122,18 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     if((await control.read()).suspended[req.session.company.id])return res.status(403).json({error:'COMPANY_SUSPENDED'});
     next();
   });
+  // Unverified accounts may only reach the screens needed to verify (and sign out).
+  const unverifiedPaths = ['/me', '/auth/logout', '/auth/resend-verification', '/auth/security'];
+  app.use('/api', (req, res, next) => {
+    if (!req.session.user.email_verified_at && !unverifiedPaths.includes(req.path)) return res.status(403).json({ error: 'EMAIL_NOT_VERIFIED' });
+    next();
+  });
+  account.sessionRoutes(app, authLimit);
   app.post('/api/auth/logout', async (req, res) => {
     await store.deleteSession(hashToken(sessionToken(req)));
     res.clearCookie('equitensa_session', { path: '/', httpOnly: true, sameSite: 'strict', secure }); res.json({ ok: true });
   });
-  app.get('/api/me', (req, res) => res.json({ company: req.session.company, user: { email: req.session.user.email, role: req.session.user.role }, demo }));
+  app.get('/api/me', (req, res) => res.json({ company: req.session.company, user: { email: req.session.user.email, role: req.session.user.role, emailVerified: !!req.session.user.email_verified_at, mfaEnabled: !!req.session.user.mfa_enabled }, demo }));
   billingRoutes(app,{store,demo,billing,getBilling:req=>effectivePayment(control,billing,demo,req),stripeFetch});
   function yearValue(value) {
     const year = Number(value ?? 2026);
@@ -223,8 +241,8 @@ export function createApp({ store, demo = false, secret, secure = false, origins
   app.use('/api', (req, res) => res.status(404).json({ error: 'NOT_FOUND' }));
   app.use((error, req, res, next) => {
     if (res.headersSent) return next(error);
-    const known = ['EMAIL_EXISTS','INVALID_YEAR'];
-    const status = error.type === 'entity.too.large' ? 413 : error.type === 'entity.parse.failed' ? 400 : known.includes(error.message) ? 400 : 500;
+    const known = ['EMAIL_EXISTS','INVALID_YEAR','MFA_LOCKED'];
+    const status = error.message === 'MFA_LOCKED' ? 429 : error.type === 'entity.too.large' ? 413 : error.type === 'entity.parse.failed' ? 400 : known.includes(error.message) ? 400 : 500;
     if (status === 500) console.error('Request failed:', error.code || error.name);
     res.status(status).json({ error: status === 500 ? 'INTERNAL_ERROR' : error.type === 'entity.too.large' ? 'PAYLOAD_TOO_LARGE' : error.type === 'entity.parse.failed' ? 'INVALID_JSON' : error.message });
   });

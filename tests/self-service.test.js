@@ -4,6 +4,7 @@ import { once } from 'node:events';
 import { createHmac } from 'node:crypto';
 import { createApp } from '../server/app.js';
 import { MemoryStore } from '../server/store.js';
+import { verifyAll } from './helpers.js';
 import { verifyStripeEvent, subscriptionPlan } from '../server/billing.js';
 import { readiness, validateWorkflow } from '../server/workflow.js';
 import { reportingPlan } from '../server/regulatory.js';
@@ -13,7 +14,7 @@ test('self service purchase, mapped import, approvals, audience exports and snap
   t.after(()=>{server.closeAllConnections();server.close();});
   const origin=`http://127.0.0.1:${server.address().port}`;
   const request=(path,cookie,body)=>fetch(origin+'/api'+path,{method:body===undefined?'GET':'POST',headers:{Origin:origin,...(cookie?{Cookie:cookie}:{}),...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
-  const register=async(email)=>{const r=await request('/auth/register',null,{companyName:'Test GmbH',email,password:'twelve-characters!',country:'AT'});assert.equal(r.status,201);return r.headers.get('set-cookie').split(';')[0];};
+  const register=async(email)=>{const r=await request('/auth/register',null,{companyName:'Test GmbH',email,password:'twelve-characters!',country:'AT'});assert.equal(r.status,201);verifyAll(store);return r.headers.get('set-cookie').split(';')[0];};
   const a=await register('a@selfservice.example'),b=await register('b@selfservice.example');
   const headers='Id,Sex,Title,Category,Annual,Bonus,Hours,Weekly';
   const csv=headers+'\n'+Array.from({length:12},(_,i)=>`${i+1},${i<6?'M':'F'},Engineer,Equal work,${i<6?60000:54000},3000,2080,40`).join('\n');

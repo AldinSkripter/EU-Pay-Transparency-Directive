@@ -3,10 +3,12 @@ import assert from 'node:assert/strict';
 import { once } from 'node:events';
 import { createApp } from '../server/app.js';
 import { MemoryStore } from '../server/store.js';
+import { verifyAll } from './helpers.js';
 
 test('DE AT SI imports retain tenant jurisdiction, normalize localized data and reject conflicting file metadata',async t=>{
   const browserOrigin='http://localhost:3000';
-  const server=createApp({store:new MemoryStore(),demo:false,secret:'c'.repeat(64),origins:[browserOrigin]}).listen(0,'127.0.0.1');
+  const store=new MemoryStore();
+  const server=createApp({store,demo:false,secret:'c'.repeat(64),origins:[browserOrigin]}).listen(0,'127.0.0.1');
   await once(server,'listening');
   t.after(()=>{server.closeAllConnections();server.close();});
   const origin=`http://127.0.0.1:${server.address().port}`;
@@ -14,7 +16,7 @@ test('DE AT SI imports retain tenant jurisdiction, normalize localized data and 
   const cookies={};
   for(const country of ['DE','AT','SI']){
     const registered=await request('/auth/register',null,{email:`${country}@example.com`,password:'correct-horse-123',companyName:`Company ${country}`,country});
-    assert.equal(registered.status,201);
+    assert.equal(registered.status,201);verifyAll(store);
     cookies[country]=registered.headers.get('set-cookie').split(';')[0];
     const headers=country==='SI'?'Šifra zaposlenega;Spol;Delovno mesto;Enakovredna kategorija;Letna osnovna bruto plača;Letne plačane ure;Tedenske ure':'Personalnummer;Geschlecht;Tätigkeit;Vergleichsgruppe;Jahresgrundbezug;Bezahlte Jahresstunden;Wochenstunden';
     const csv=`${headers};reporting_country;currency;reporting_year\n001;${country==='SI'?'Ž':'weiblich'};Engineer;Engineering;60000,50;2080;38,5;${country};EUR;2026`;

@@ -4,6 +4,7 @@ import { once } from 'node:events';
 import { request as httpRequest } from 'node:http';
 import { createApp } from '../server/app.js';
 import { MemoryStore } from '../server/store.js';
+import { verifyAll } from './helpers.js';
 const origin = 'http://localhost:3000';
 const csv = 'internal_id,gender,job_title,worker_category,base_annual,bonuses_annual,paid_hours_annual,hours_per_week\n1,M,Engineer,Engineering L3,60000,2000,2080,40\n2,F,Engineer,Engineering L3,62000,1000,2080,40';
 test('authenticated import and export maintain tenant isolation and atomic snapshots', async t => {
@@ -14,8 +15,8 @@ test('authenticated import and export maintain tenant isolation and atomic snaps
   const base = `http://127.0.0.1:${server.address().port}/api`;
   const request = (path,{body,cookie,headers={}}={}) => fetch(base+path,{ method:body===undefined?'GET':'POST',headers:{ Origin:origin,...(body===undefined?{}:{'Content-Type':'application/json'}),...(cookie?{Cookie:cookie}:{}),...headers },...(body===undefined?{}:{body:JSON.stringify(body)}) });
   const register = async email => {
-    const response = await request('/auth/register',{body:{email,password:'correct-horse-123',companyName:'Acme'}});
-    assert.equal(response.status,201);
+    const response = await request('/auth/register',{body:{email,password:'correct-horse-123',companyName:'Acme',country:'DE'}});
+    assert.equal(response.status,201);verifyAll(store);
     return response.headers.get('set-cookie').split(';')[0];
   };
   const cookieA = await register('a@example.com'), cookieB = await register('b@example.com');

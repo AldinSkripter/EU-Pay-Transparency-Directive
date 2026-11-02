@@ -1,7 +1,25 @@
 import { randomUUID } from 'node:crypto';
 import pg from 'pg';
 
+const userFields=['email_verified_at','password_hash','mfa_secret_enc','mfa_pending_enc','mfa_backup_hashes','mfa_last_step'];
 export class MemoryStore {
+  userTokens = new Map();
+  async findUserById(id) {return this.users.get(id)||null;}
+  async updateUser(id,fields) {
+    const user=this.users.get(id);if(!user)throw new Error('USER_NOT_FOUND');
+    for(const [key,value] of Object.entries(fields)){if(!userFields.includes(key))throw new Error('INVALID_USER_FIELD');user[key]=structuredClone(value);}
+  }
+  async saveUserToken(hash,userId,purpose,expiresAt) {
+    for(const [key,t] of this.userTokens)if(t.expiresAt<=Date.now()||(t.userId===userId&&t.purpose===purpose))this.userTokens.delete(key);
+    this.userTokens.set(hash,{userId,purpose,expiresAt:expiresAt.getTime()});
+  }
+  async consumeUserToken(hash,purpose) {
+    const t=this.userTokens.get(hash);if(!t||t.purpose!==purpose)return null;
+    this.userTokens.delete(hash);return t.expiresAt>Date.now()?t.userId:null;
+  }
+  async deleteUserSessions(userId,keepHash=null) {for(const [hash,session] of this.sessions)if(session.userId===userId&&hash!==keepHash)this.sessions.delete(hash);}
+  async advanceMfaStep(userId,step) {const user=this.users.get(userId);if(!user||step<=Number(user.mfa_last_step||0))return false;user.mfa_last_step=step;return true;}
+  async consumeBackupCode(userId,hash) {const user=this.users.get(userId),list=user?.mfa_backup_hashes||[];if(!list.includes(hash))return false;user.mfa_backup_hashes=list.filter(h=>h!==hash);return true;}
   payrollLedgers = new Map();
   async payrollLedger(companyId,year) {return structuredClone(this.payrollLedgers.get(`${companyId}:${year}`)||{version:0,document:null});}
   async savePayrollLedger(companyId,year,version,document,actor,action='payroll_staged') {
@@ -68,7 +86,7 @@ export class MemoryStore {
     const session = this.sessions.get(tokenHash);
     if (!session || session.expiresAt <= new Date()) { this.sessions.delete(tokenHash); return null; }
     const user = this.users.get(session.userId);
-    return user ? { user, company: this.companies.get(user.company_id) } : null;
+    return user ? { user: {...user,mfa_enabled:!!user.mfa_secret_enc}, company: this.companies.get(user.company_id) } : null;
   }
   async deleteSession(tokenHash) { this.sessions.delete(tokenHash); }
   async saveSnapshot(companyId, year, rows, source, importData) {
@@ -101,6 +119,25 @@ export class MemoryStore {
 
 export class PostgresStore {
   constructor(connectionString) { this.pool = new pg.Pool({ connectionString, max: 10 }); }
+  async findUserById(id) {return (await this.pool.query('SELECT * FROM users WHERE id=$1',[id])).rows[0]||null;}
+  async updateUser(id,fields) {
+    const entries=Object.entries(fields);if(entries.some(([key])=>!userFields.includes(key)))throw new Error('INVALID_USER_FIELD');
+    if(!entries.length)return;
+    const values=entries.map(([key,value])=>key==='mfa_backup_hashes'?JSON.stringify(value):value instanceof Date?value.toISOString():value);
+    await this.pool.query(`UPDATE users SET ${entries.map(([key],i)=>`${key}=$${i+2}`).join(',')} WHERE id=$1`,[id,...values]);
+  }
+  async saveUserToken(hash,userId,purpose,expiresAt) {
+    const client=await this.pool.connect();try {
+      await client.query('BEGIN');
+      await client.query('DELETE FROM user_tokens WHERE expires_at<=now() OR (user_id=$1 AND purpose=$2)',[userId,purpose]);
+      await client.query('INSERT INTO user_tokens(token_hash,user_id,purpose,expires_at) VALUES($1,$2,$3,$4)',[hash,userId,purpose,expiresAt]);
+      await client.query('COMMIT');
+    }catch(error){await client.query('ROLLBACK');throw error;}finally{client.release();}
+  }
+  async consumeUserToken(hash,purpose) {return (await this.pool.query('DELETE FROM user_tokens WHERE token_hash=$1 AND purpose=$2 AND expires_at>now() RETURNING user_id',[hash,purpose])).rows[0]?.user_id||null;}
+  async deleteUserSessions(userId,keepHash=null) {await this.pool.query('DELETE FROM sessions WHERE user_id=$1 AND ($2::text IS NULL OR token_hash<>$2)',[userId,keepHash]);}
+  async advanceMfaStep(userId,step) {return (await this.pool.query('UPDATE users SET mfa_last_step=$2 WHERE id=$1 AND mfa_last_step<$2',[userId,step])).rowCount>0;}
+  async consumeBackupCode(userId,hash) {return (await this.pool.query('UPDATE users SET mfa_backup_hashes=mfa_backup_hashes-$2::text WHERE id=$1 AND mfa_backup_hashes ? $2::text',[userId,hash])).rowCount>0;}
   async payrollLedger(companyId,year) {return (await this.pool.query('SELECT version,document FROM payroll_ledgers WHERE company_id=$1 AND reporting_year=$2',[companyId,year])).rows[0]||{version:0,document:null};}
   async savePayrollLedger(companyId,year,version,document,actor,action='payroll_staged') {
     const client=await this.pool.connect();try {
@@ -158,7 +195,7 @@ export class PostgresStore {
     try {
       await client.query('BEGIN');
       await client.query('INSERT INTO companies(id,name,country) VALUES($1,$2,$3)', [company.id, company.name, company.country]);
-      await client.query('INSERT INTO users(id,company_id,email,password_hash,google_sub) VALUES($1,$2,$3,$4,$5)', [user.id, company.id, user.email, user.password_hash,user.google_sub||null]);
+      await client.query('INSERT INTO users(id,company_id,email,password_hash,google_sub,email_verified_at) VALUES($1,$2,$3,$4,$5,$6)', [user.id, company.id, user.email, user.password_hash,user.google_sub||null,user.email_verified_at||null]);
       await client.query('COMMIT');
     } catch (error) { await client.query('ROLLBACK'); if (error.code === '23505') throw new Error('EMAIL_EXISTS'); throw error; }
     finally { client.release(); }
@@ -181,9 +218,9 @@ export class PostgresStore {
     await this.pool.query('INSERT INTO sessions(token_hash,user_id,expires_at) VALUES($1,$2,$3)', [tokenHash, userId, expiresAt]);
   }
   async session(tokenHash) {
-    const result = await this.pool.query('SELECT u.id,u.company_id,u.email,u.role,c.name,c.country FROM sessions s JOIN users u ON u.id=s.user_id JOIN companies c ON c.id=u.company_id WHERE s.token_hash=$1 AND s.expires_at>now()', [tokenHash]);
+    const result = await this.pool.query('SELECT u.id,u.company_id,u.email,u.role,u.email_verified_at,(u.mfa_secret_enc IS NOT NULL) AS mfa_enabled,c.name,c.country FROM sessions s JOIN users u ON u.id=s.user_id JOIN companies c ON c.id=u.company_id WHERE s.token_hash=$1 AND s.expires_at>now()', [tokenHash]);
     const row = result.rows[0];
-    return row ? { user: { id: row.id, company_id: row.company_id, email: row.email, role: row.role }, company: { id: row.company_id, name: row.name, country: row.country } } : null;
+    return row ? { user: { id: row.id, company_id: row.company_id, email: row.email, role: row.role, email_verified_at: row.email_verified_at, mfa_enabled: row.mfa_enabled }, company: { id: row.company_id, name: row.name, country: row.country } } : null;
   }
   async deleteSession(tokenHash) { await this.pool.query('DELETE FROM sessions WHERE token_hash=$1', [tokenHash]); }
   async saveSnapshot(companyId, year, rows, source, importData) {

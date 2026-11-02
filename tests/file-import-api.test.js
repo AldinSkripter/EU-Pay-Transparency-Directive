@@ -4,6 +4,7 @@ import { once } from 'node:events';
 import * as XLSX from 'xlsx';
 import { createApp } from '../server/app.js';
 import { MemoryStore } from '../server/store.js';
+import { verifyAll } from './helpers.js';
 
 test('file upload to preview, remembered mapping, idempotent import, tenant history and XLSX/JSON reports',async t=>{
   const store=new MemoryStore(),browserOrigin='http://localhost:3000';
@@ -13,7 +14,7 @@ test('file upload to preview, remembered mapping, idempotent import, tenant hist
   const request=(path,cookie,body)=>fetch(base+path,{method:body===undefined?'GET':'POST',headers:{Origin:browserOrigin,...(cookie?{Cookie:cookie}:{}),...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
   const cookies={};
   for(const country of ['DE','AT','SI']){
-    const r=await request('/auth/register',null,{email:`file-${country}@example.test`,password:'correct-horse-123',companyName:`${country} Test`,country});assert.equal(r.status,201);cookies[country]=r.headers.get('set-cookie').split(';')[0];
+    const r=await request('/auth/register',null,{email:`file-${country}@example.test`,password:'correct-horse-123',companyName:`${country} Test`,country});assert.equal(r.status,201);verifyAll(store);cookies[country]=r.headers.get('set-cookie').split(';')[0];
     const headers=['local_key','gender','job_title','worker_category','base_annual','paid_hours_annual','hours_per_week','reporting_country','currency','reporting_year'];
     const data=Array.from({length:12},(_,i)=>[String(i).padStart(3,'0'),i<6?'F':'M','Engineer','=PRIVATE CATEGORY',i<6?60000:65000,2080,40,country,'EUR',2026]);
     const book=XLSX.utils.book_new();XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet([headers,...data]),'Payroll');

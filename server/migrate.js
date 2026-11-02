@@ -9,5 +9,6 @@ try {
   await pool.query(await readFile(new URL('../db/004_google_auth.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../db/005_import_batches.sql', import.meta.url), 'utf8'));
   await pool.query(await readFile(new URL('../db/006_payroll_ledger.sql', import.meta.url), 'utf8'));
+  await pool.query(await readFile(new URL('../db/007_account_security.sql', import.meta.url), 'utf8'));
   console.log('Database migration complete.');
 } finally { await pool.end(); }
