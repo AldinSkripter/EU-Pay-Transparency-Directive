@@ -1,6 +1,6 @@
 import express from 'express';
 import helmet from 'helmet';
-import { rateLimit } from 'express-rate-limit';
+import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { createAccountService } from './account.js';
 import { MemoryMailer } from './mailer.js';
@@ -10,6 +10,8 @@ import { workerRightsRoutes } from './worker-rights.js';
 import { payCriteriaRoutes } from './pay-criteria.js';
 import { ingestPushRoutes, integrationKeyRoutes, resolveBatch } from './ingest.js';
 import { parseDelimited, suggestMapping, mapImportRecord, validateMapping, inspectImport, validateImportContext } from './importer.js';
+import { assessQuality, validateFixes, prepareRecords, normalizeMapping } from './data-quality.js';
+import { createAssistant, buildAssistantContext, AssistantError } from './ai-assistant.js';
 import { marketContext, markets } from './market.js';
 import { hashPassword, verifyPassword, establishSession, sessionToken, hashToken } from './auth.js';
 import { normalizeEmployee, analyze, reportingSchedule } from './pay.js';
@@ -27,7 +29,7 @@ import { effectivePayment } from './payment-config.js';
 import {defaultGoogle,googleForRequest} from './google-config.js';
 import {googleRoutes} from './google-auth.js';
 
-export function createApp({ store, demo = false, secret, secure = false, origins = [], billing = {}, control = new MemoryControlStore(), stripeFetch = fetch, googleFetch = fetch, mailer = new MemoryMailer(), accountKey = randomBytes(32), requireOwnerMfa = secure }) {
+export function createApp({ store, demo = false, secret, secure = false, origins = [], billing = {}, control = new MemoryControlStore(), stripeFetch = fetch, googleFetch = fetch, mailer = new MemoryMailer(), accountKey = randomBytes(32), requireOwnerMfa = secure, assistant = createAssistant() }) {
   const app = express();
   app.disable('x-powered-by');
   app.use(helmet({ contentSecurityPolicy: secure ? undefined : false }));
@@ -181,9 +183,13 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     try {batch=await resolveBatch(req,store);if(batch&&batch.reporting_year!==year)throw new Error('BATCH_YEAR_MISMATCH');parsed=await parseImportInput(req.body);if(parsed.selectionRequired)throw new Error('IMPORT_SELECTION_REQUIRED');validateMapping(req.body.mapping,parsed.headers);}
     catch(error){return res.status(422).json({error:error.message});}
     if(req.body.file && req.body.contextConfirmed!==true)return res.status(422).json({error:'IMPORT_CONFIRMATION_REQUIRED'});
-    const records=parsed.rows;
-    if(!records.length || records.length>10000)return res.status(422).json({error:'INVALID_ROW_COUNT'});
-    const contextErrors = validateImportContext(parsed.headers,records,{country:req.session.company.country,year});
+    if(!parsed.rows.length || parsed.rows.length>10000)return res.status(422).json({error:'INVALID_ROW_COUNT'});
+    let prepared;
+    try {const fixes=validateFixes(req.body.fixes,{headers:parsed.headers,mapping:req.body.mapping,count:parsed.rows.length,headerRow:parsed.headerRow});prepared=prepareRecords(parsed.rows,{headers:parsed.headers,mapping:req.body.mapping,fixes,decimalSeparator:req.body.decimalSeparator??'.',headerRow:parsed.headerRow});}
+    catch(error){return res.status(422).json({error:error.message});}
+    const records=prepared.records;
+    if(!records.length)return res.status(422).json({error:'INVALID_ROW_COUNT'});
+    const contextErrors = validateImportContext(parsed.headers,records,{country:req.session.company.country,year}).map(problem=>({...problem,row:prepared.rows[problem.row-2]}));
     if(contextErrors.length)return res.status(422).json({error:'IMPORT_VALIDATION_FAILED',errors:contextErrors});
     const rows=[],errors=[],ids=new Set();
     records.forEach((record,index)=>{
@@ -192,7 +198,7 @@ export function createApp({ store, demo = false, secret, secure = false, origins
         const row=normalizeEmployee(mapped,req.session.company.id,secret);
         if(ids.has(row.anonymized_id))throw new Error('DUPLICATE_EMPLOYEE');
         ids.add(row.anonymized_id);rows.push(row);
-      }catch(error){if(errors.length<25)errors.push({row:index+(parsed.headerRow||1)+1,error:error.message});}
+      }catch(error){if(errors.length<25)errors.push({row:prepared.rows[index],error:error.message});}
     });
     if(errors.length)return res.status(422).json({error:'IMPORT_VALIDATION_FAILED',errors});
     const order=await store.activeOrder(req.session.company.id),plan=plans.find(p=>p.id===order?.plan);
@@ -203,7 +209,34 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     const fingerprint=digest({rows,profile,version:'annual-v1',year,country:req.session.company.country});
     const snapshot=await store.saveSnapshot(req.session.company.id,year,rows,parsed.format,{fingerprint,fileHash:parsed.fileHash,structureHash:structure(parsed,year,req.session.company.country),profile,actor:req.session.user.id});
     if(batch)await store.closeIngestBatch(req.session.company.id,batch.id,'imported');
+    // Counts only, never the corrected values: the audit trail shows that corrections were applied at import.
+    if(Object.values(prepared.applied).some(Boolean))await store.audit(req.session.company.id,'import_corrections_applied',{year,snapshot_id:snapshot.id,...prepared.applied});
     res.status(snapshot.replayed?200:201).json({snapshot:{id:snapshot.id,count:rows.length,year},replayed:!!snapshot.replayed});
+  });
+  // Findings for the file as it would be imported with the chosen mapping, separator and corrections.
+  const prepare=(parsed,body)=>{
+    const headers=parsed.headers,decimalSeparator=body.decimalSeparator===','?',':'.',mapping=normalizeMapping(body.mapping??suggestMapping(headers).mapping,headers);
+    const fixes=validateFixes(body.fixes,{headers,mapping,count:parsed.rows.length,headerRow:parsed.headerRow});
+    return {headers,decimalSeparator,mapping,...prepareRecords(parsed.rows,{headers,mapping,fixes,decimalSeparator,headerRow:parsed.headerRow})};
+  };
+  const qualityOf=(parsed,body)=>{const p=prepare(parsed,body);return {...assessQuality({headers:p.headers,rows:p.rows,records:p.records,mapping:p.mapping,decimalSeparator:p.decimalSeparator,applied:p.applied}),applied:p.applied};};
+  const analysisLimit=rateLimit({windowMs:60_000,limit:40,standardHeaders:'draft-8',legacyHeaders:false,keyGenerator:req=>req.session?.company?.id??ipKeyGenerator(req.ip)});
+  const assistLimit=rateLimit({windowMs:60*60_000,limit:15,standardHeaders:'draft-8',legacyHeaders:false,keyGenerator:req=>req.session?.company?.id??ipKeyGenerator(req.ip)});
+  const loadForAnalysis=async req=>{await resolveBatch(req,store);const parsed=await parseImportInput(req.body);if(parsed.selectionRequired)throw new Error('IMPORT_SELECTION_REQUIRED');return parsed;};
+  app.post('/api/import/quality',analysisLimit,async(req,res)=>{
+    try {res.json(qualityOf(await loadForAnalysis(req),req.body));}
+    catch(error){res.status(422).json({error:error.message});}
+  });
+  // Optional AI suggestions. Only runs on an explicit request with consent; see ai-assistant.js for what is sent.
+  app.post('/api/import/assist',assistLimit,async(req,res)=>{
+    if(!assistant.available)return res.status(503).json({error:'AI_NOT_CONFIGURED'});
+    if(req.body.consent!==true)return res.status(422).json({error:'AI_CONSENT_REQUIRED'});
+    try {
+      const parsed=await loadForAnalysis(req),p=prepare(parsed,req.body),context=buildAssistantContext({headers:p.headers,rows:p.records,mapping:p.mapping});
+      const result=await assistant.suggest({context,language:req.body.language==='sl'?'sl':'de'});
+      await store.audit(req.session.company.id,'ai_assist_used',{year:yearValue(req.body.year),rows:context.rowCount,columns:context.columns.length,categories:context.categories.length,suggested_mapping:result.mapping.length,suggested_groups:result.categories.length,model:result.model});
+      res.json({...result,sent:{columns:context.columns.length,categories:context.categories.length,jobTitles:context.jobTitles.length}});
+    }catch(error){res.status(error instanceof AssistantError?error.status:422).json({error:error.message});}
   });
   app.post('/api/import/preview',async(req,res)=>{
     try {
@@ -213,7 +246,8 @@ export function createApp({ store, demo = false, secret, secure = false, origins
       const {headers,rows}=parsed,suggested=suggestMapping(headers);
       const saved=await store.importProfile(req.session.company.id,structure(parsed,year,req.session.company.country));
       const mapping=saved?.document.mapping||suggested.mapping;
-      res.json({...parsed,rows:rows.slice(0,30),count:rows.length,...suggested,mapping,savedProfile:saved?{version:saved.version,decimalSeparator:saved.document.decimalSeparator}:null,context:{...inspectImport(headers,rows,mapping),reportingCountry:req.session.company.country},contextErrors:validateImportContext(headers,rows,{country:req.session.company.country,year})});
+      const context={...inspectImport(headers,rows,mapping),reportingCountry:req.session.company.country};
+      res.json({...parsed,rows:rows.slice(0,30),count:rows.length,...suggested,mapping,savedProfile:saved?{version:saved.version,decimalSeparator:saved.document.decimalSeparator}:null,context,contextErrors:validateImportContext(headers,rows,{country:req.session.company.country,year}),quality:qualityOf(parsed,{mapping,decimalSeparator:saved?.document.decimalSeparator||context.decimalSeparator||'.'}),assistant:{available:assistant.available}});
     }catch(error){res.status(422).json({error:error.message});}
   });
   payrollRoutes(app,{store,secret,yearValue});

@@ -53,6 +53,7 @@ export const errorText=(error,L)=> {
     INVALID_ENCODING:L('Diese Textkodierung wird nicht unterstützt.','To kodiranje besedila ni podprto.'),
     PAYLOAD_TOO_LARGE:L('Die Datei ist zu groß (Grenze 4 MB, in ZIP-Archiven 8 MB entpackt).','Datoteka je prevelika (omejitev 4 MB, v arhivu ZIP 8 MB po razpakiranju).'),
     UTF8_REQUIRED:L('Bitte die Datei als UTF-8 exportieren.','Izvozite datoteko v kodiranju UTF-8.'),
+    INVALID_FIXES:L('Eine Korrektur passt nicht zur Datei. Bitte zurücksetzen und erneut wählen.','Popravek ne ustreza datoteki. Ponastavite in izberite znova.'),
     INVALID_MAPPING:L('Jedes Pflichtfeld einer eigenen vorhandenen Spalte zuordnen.','Vsako obvezno polje povežite z lastnim obstoječim stolpcem.'),
   };
   if (importMessages[error.message]) return importMessages[error.message];

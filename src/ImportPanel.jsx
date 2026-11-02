@@ -2,6 +2,7 @@ import React,{useEffect,useState} from 'react';
 import {Upload,Download,ArrowRight} from 'lucide-react';
 import {api,Button,ArrowButton,Tag,TextField,CheckField,Notice,download,template,errorText} from './ui';
 import {acceptAttribute,textEncodings,formatSummary} from '../shared/import-formats.js';
+import ImportAssistant,{serializeFixes} from './ImportAssistant';
 
 const required=['internal_id','gender','job_title','worker_category','base_annual','paid_hours_annual','hours_per_week'];
 const encodeFile=file=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('INVALID_FILE'));reader.onload=()=>resolve({name:file.name,base64:String(reader.result).split(',')[1]});reader.readAsDataURL(file);});
@@ -11,9 +12,10 @@ export default function ImportPanel({L,year,perform,busy,onImported,snapshot,bat
   const [sheet,setSheet]=useState(''),[headerRow,setHeaderRow]=useState(1),[recordPath,setRecordPath]=useState(''),[encoding,setEncoding]=useState(''),[zipEntry,setZipEntry]=useState('');
   const [decimalSeparator,setDecimalSeparator]=useState('.'),[confirmed,setConfirmed]=useState(false),[history,setHistory]=useState([]),[revision,setRevision]=useState(0);
   const [choices,setChoices]=useState(null);
+  const [fixes,setFixes]=useState({}),[quality,setQuality]=useState(null),[qualityPending,setQualityPending]=useState(false),[qualityError,setQualityError]=useState(null),[assistantAvailable,setAssistantAvailable]=useState(false),[acknowledged,setAcknowledged]=useState(false);
   useEffect(()=>{setPreview(null);setConfirmed(false);setChoices(null);},[batch?.id]);
   useEffect(()=>{setPreview(null);setConfirmed(false);let current=true;api(`/import/history?year=${year}`).then(r=>{if(current)setHistory(r.batches);}).catch(()=>{if(current)setHistory([]);});return()=>{current=false;};},[year,revision]);
-  const invalidate=()=>{setPreview(null);setConfirmed(false);};
+  const invalidate=()=>{setPreview(null);setConfirmed(false);setFixes({});setQuality(null);setQualityError(null);setAcknowledged(false);};
   const fields=[['internal_id',L('Interne ID','Interni ID')],['gender',L('Geschlecht','Spol')],['job_title',L('Tätigkeit','Delovno mesto')],['worker_category',L('Gleichwertige Kategorie','Enakovredna kategorija')],['job_category_kv',L('KV-Stufe (optional)','Stopnja KP (neobvezno)')],['base_annual',L('Jahresgrundvergütung (€)','Letno osnovno plačilo (€)')],['bonuses_annual',L('Jährliche variable Vergütung (€, optional)','Letno variabilno plačilo (€, neobvezno)')],['paid_hours_annual',L('Bezahlte Jahresstunden','Letne plačane ure')],['hours_per_week',L('Wochenstunden','Tedenske ure')]];
   const payload=()=>({...batch?{batchId:batch.id}:file?{file}:{csv},year,sheet:sheet||undefined,headerRow:Number(headerRow),recordPath:recordPath||undefined,zipEntry:zipEntry||undefined,encoding:encoding||undefined});
   const choose=selected=>perform(async()=>{
@@ -24,10 +26,17 @@ export default function ImportPanel({L,year,perform,busy,onImported,snapshot,bat
   const showPreview=()=>perform(async()=>{
     invalidate();const result=await api('/import/preview',payload());setChoices(result);
     if(result.selectionRequired)return;
-    setPreview(result);setMapping(result.mapping||{});
+    setPreview(result);setMapping(result.mapping||{});setQuality(result.quality||null);setAssistantAvailable(!!result.assistant?.available);
     setDecimalSeparator(result.savedProfile?.decimalSeparator||result.context?.decimalSeparator||'.');
     if(result.sheet)setSheet(result.sheet);if(result.recordPath)setRecordPath(result.recordPath);if(result.zipEntry)setZipEntry(result.zipEntry);
   });
+  // Re-check whenever the mapping, the decimal separator or a chosen correction changes.
+  useEffect(()=>{
+    if(!preview){setQualityPending(false);return;}let current=true;setQualityPending(true);
+    const timer=setTimeout(()=>{api('/import/quality',{...payload(),mapping,decimalSeparator,fixes:serializeFixes(fixes)}).then(r=>{if(current){setQuality(r);setQualityError(null);}}).catch(e=>{if(current)setQualityError(e);}).finally(()=>{if(current)setQualityPending(false);});},250);
+    return()=>{current=false;clearTimeout(timer);};
+  },[preview,mapping,decimalSeparator,fixes]);
+  const fieldLabel=field=>fields.find(([id])=>id===field)?.[1]||field;
   const warnings={REPORTING_PERIOD_NOT_IN_FILE:L('Kein Berichtsjahr in der Datei: Jahresbezug bestätigen.','Datoteka nima leta poročanja: potrdite letno obdobje.'),CURRENCY_NOT_IN_FILE:L('Keine Währung in der Datei: EUR bestätigen.','Datoteka nima valute: potrdite EUR.'),AMBIGUOUS_DECIMAL_FORMAT:L('Uneinheitliche Zahlenformate: Daten vor dem Import korrigieren.','Neenotne oblike števil: pred uvozom popravite podatke.'),PAY_BASIS_REQUIRES_REVIEW:L('Bruttobetrag ist nicht automatisch Jahresgrundvergütung. Bedeutung und Zeitraum prüfen.','Bruto znesek ni samodejno letno osnovno plačilo. Preverite pomen in obdobje.')};
   return <section className="panel import-panel">
     {snapshot&&<Notice>{L('Ein neuer Import ersetzt den aktuellen Arbeitsdatenstand. Kategorien und Freigaben erneut prüfen. Ein identischer erneuter Import erstellt keinen neuen Datenstand.','Nov uvoz nadomesti trenutne podatke. Ponovno preverite kategorije in potrditve. Enak ponovni uvoz ne ustvari novega podatkovnega posnetka.')}</Notice>}
@@ -50,10 +59,12 @@ export default function ImportPanel({L,year,perform,busy,onImported,snapshot,bat
       {preview.contextErrors?.map((issue,i)=><Notice tone="error" key={i}>{L('Zeile','Vrstica')} {issue.row} · {issue.column}: {errorText({message:issue.error},L)}</Notice>)}
       <label className="field"><span>{L('Dezimaltrennzeichen für alle Zahlen','Decimalno ločilo za vsa števila')}</span><select disabled={busy} value={decimalSeparator} onChange={e=>{setDecimalSeparator(e.target.value);setConfirmed(false);}}><option value=".">{L('Punkt: 60000.50','Pika: 60000.50')}</option><option value=",">{L('Komma: 60000,50','Vejica: 60000,50')}</option></select></label>
       <div className="mapping-grid">{fields.map(([field,label])=><label className="field" key={field}><span>{label}{required.includes(field)?' *':''}</span><select disabled={busy} value={mapping[field]||''} onChange={e=>{setMapping(m=>({...m,[field]:e.target.value}));setConfirmed(false);}}><option value="">{L('Spalte auswählen','Izberite stolpec')}</option>{preview.headers.map(h=><option key={h}>{h}</option>)}</select></label>)}</div>
+      <ImportAssistant L={L} quality={quality} pending={qualityPending} error={qualityError} fixes={fixes} setFixes={f=>{setFixes(f);setConfirmed(false);}} mapping={mapping} setMapping={m=>{setMapping(m);setConfirmed(false);}} decimalSeparator={decimalSeparator} setDecimalSeparator={v=>{setDecimalSeparator(v);setConfirmed(false);}} fieldLabel={fieldLabel} assistantAvailable={assistantAvailable} busy={busy} runAssistant={()=>api('/import/assist',{...payload(),mapping,decimalSeparator,fixes:serializeFixes(fixes),consent:true,language:L('de','sl')})}/>
       <h3>{L('Vorschau der ersten 30 Zeilen','Predogled prvih 30 vrstic')}</h3><div className="table-scroll"><table><thead><tr>{preview.headers.map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{preview.rows.map((row,i)=><tr key={i}>{preview.headers.map(h=><td key={h}>{row[h]}</td>)}</tr>)}</tbody></table></div>
+      {quality?.summary.warnings>0&&<CheckField disabled={busy} checked={acknowledged} onChange={e=>setAcknowledged(e.target.checked)}>{L('Ich habe die Hinweise gelesen und importiere die Daten trotzdem.','Opozorila sem prebral in podatke kljub temu uvozim.')}</CheckField>}
       <CheckField disabled={busy} checked={confirmed} onChange={e=>setConfirmed(e.target.checked)}>{L('Ich bestätige die Zuordnung, EUR, Jahresbeträge und bezahlte Stunden für dieses Berichtsjahr. Diese Zuordnung für meine Firma speichern.','Potrjujem preslikavo, EUR, letne zneske in plačane ure za to leto. Preslikavo shrani za moje podjetje.')}</CheckField>
       <Notice>{L('IDs werden mandantenbezogen pseudonymisiert. Gespeichert werden Datenstand, Datei-Prüfsumme und freigegebene Zuordnung. Die Originaldatei wird nicht gespeichert.','ID-ji se psevdonimizirajo za podjetje. Shranijo se podatkovni posnetek, kontrolna vsota datoteke in potrjena preslikava. Izvirna datoteka se ne shrani.')}</Notice>
-      <ArrowButton busy={busy} disabled={!confirmed||!!preview.contextErrors?.length||required.some(f=>!mapping[f])} onClick={()=>perform(async()=>{await api('/import',{...payload(),mapping,decimalSeparator,contextConfirmed:confirmed});setFile(null);setCsv('');setChoices(null);invalidate();setRevision(v=>v+1);onBatchUsed?.();await onImported();})}>{L(`Daten für ${year} prüfen & importieren`,`Preverite in uvozite podatke za ${year}`)}</ArrowButton>
+      <ArrowButton busy={busy} disabled={!confirmed||!!preview.contextErrors?.length||required.some(f=>!mapping[f])||!quality||qualityPending||quality.summary.errors>0||(quality.summary.warnings>0&&!acknowledged)} onClick={()=>perform(async()=>{await api('/import',{...payload(),mapping,decimalSeparator,fixes:serializeFixes(fixes),contextConfirmed:confirmed});setFile(null);setCsv('');setChoices(null);invalidate();setRevision(v=>v+1);onBatchUsed?.();await onImported();})}>{L(`Daten für ${year} prüfen & importieren`,`Preverite in uvozite podatke za ${year}`)}</ArrowButton>
     </>}
     {history.length>0&&<><h3>{L('Importverlauf','Zgodovina uvozov')}</h3><div className="table-scroll"><table><thead><tr><th>{L('Zeitpunkt','Čas')}</th><th>{L('Format','Oblika')}</th><th>{L('Zuordnung','Preslikava')}</th><th>{L('Datei-Prüfsumme','Kontrolna vsota datoteke')}</th></tr></thead><tbody>{history.map(batch=><tr key={batch.id}><td>{new Date(batch.created_at).toLocaleString()}</td><td>{batch.format}</td><td>v{batch.mapping_version}</td><td title={batch.file_hash}>{batch.file_hash.slice(0,12)}…</td></tr>)}</tbody></table></div></>}
   </section>;

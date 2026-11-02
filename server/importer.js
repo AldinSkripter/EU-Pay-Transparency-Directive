@@ -14,6 +14,7 @@ const aliases = {
   hours_per_week: ['Wochenstunden','Weekly hours','Tedenske ure','Wochenarbeitszeit','Wöchentliche Arbeitszeit','Weekly working hours','Tedenski delovni čas','Delovni čas na teden','Wochenarbeitsstunden'],
 };
 const key = value => value.normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/[^a-z0-9]/g,'');
+export const foldKey = key;
 const localHeader = header => header.split('.').at(-1).replace(/^@/,'').split(':').at(-1);
 const matchesHeader = (header,alias) => key(header)===key(alias) || key(localHeader(header))===key(alias);
 
@@ -78,12 +79,13 @@ export function suggestMapping(headers) {
   return {mapping,suggestions,unmapped:headers.filter(h=>!Object.values(mapping).includes(h))};
 }
 
+const genders = {m:'M',male:'M',mannlich:'M',moski:'M',f:'F',w:'F',female:'F',weiblich:'F',z:'F',zenska:'F',o:'O',other:'O',divers:'O',drugo:'O'};
+export const genderCode = value => genders[key(String(value ?? '').trim())];
+
 export function mapImportRecord(record, mapping, decimalSeparator = '.') {
   if (!['.',','].includes(decimalSeparator)) throw new Error('INVALID_DECIMAL_SEPARATOR');
   const mapped = Object.fromEntries(importFields.map(field => [field,record[mapping ? mapping[field] : field]]));
-  const gender = key(String(mapped.gender ?? '').trim());
-  const genders = {m:'M',male:'M',mannlich:'M',moski:'M',f:'F',w:'F',female:'F',weiblich:'F',z:'F',zenska:'F',o:'O',other:'O',divers:'O',drugo:'O'};
-  mapped.gender = genders[gender] ?? mapped.gender;
+  mapped.gender = genderCode(mapped.gender) ?? mapped.gender;
   for (const field of ['base_annual','bonuses_annual','paid_hours_annual','hours_per_week']) {
     const value = mapped[field];
     if (value === undefined && field === 'bonuses_annual') continue;

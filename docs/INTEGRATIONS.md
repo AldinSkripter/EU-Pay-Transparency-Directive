@@ -47,3 +47,36 @@ Granice: do 10.000 zapisa i 4 MB po isporuci, 30 zahtjeva u minuti po ključu, n
 Sigurnost: isporuka nikad ne zamjenjuje odobrene podatke, ID-ovi se pseudonimiziraju, a sirovi podaci se brišu nakon uvoza. U dnevniku su samo brojevi, ne podaci.
 
 Testovi: `tests/ingest.test.js`, `tests/import-formats.test.js`, `tests/worker-rights-postgres.test.js`.
+
+## Datenqualitäts-Assistent beim Import
+
+Nach der Vorschau prüft Equitensa die Daten, **bevor** etwas importiert wird, und bietet für jeden Befund eine Korrektur mit einem Klick an. Die Originaldatei wird nie verändert und nie gespeichert; Korrekturen werden erst beim Import angewendet (`fixes` bei `POST /api/import`).
+
+**Automatische Prüfungen (immer aktiv, ohne externen Dienst), `server/data-quality.js`:**
+
+| Befund | Korrektur |
+| --- | --- |
+| Zahlen nicht lesbar („55.000,00 €“, „52 000“) | Zahlen bereinigen, Dezimaltrennzeichen wechseln, Einzelwert bearbeiten |
+| Tausenderpunkt als Dezimalpunkt gelesen („60.000“ = 60) | Dezimaltrennzeichen wechseln |
+| Monatsbeträge statt Jahresbeträge | Beträge × 12 / 13 / 14 (Wahl der Nutzer:in, AT: 14) |
+| Leere variable Vergütung | als 0 werten (nur auf Bestätigung) |
+| Unbekannte Geschlechtsangaben | Zuordnung M / W / D je Angabe, mit Vorschlag; nie stillschweigend |
+| Doppelte Personalnummern | identische Zeilen ausschließen; widersprüchliche nur melden |
+| Summen- und Leerzeilen | ausschließen |
+| Unplausible Stunden, Stundenentgelt, Bonus > Grundentgelt, Ausreißer je Kategorie | Hinweis, Einzelwert bearbeiten |
+| Ähnliche Kategorien (Schreibweise, „-in“-Endung, Tippfehler) | zusammenführen; Stufen, Nummern und Römische Zahlen („L2/L3“, „I/II“) werden nie zusammengeführt |
+| Alles in einer Kategorie, zu feine Kategorien, einseitige oder kleine Gruppen | Hinweis (Art. 4, Schutz kleiner Gruppen) |
+| Pflichtspalte fehlt | Vorschlag nach Spalteninhalt, nur wenn genau eine Spalte passt |
+| Spalten mit Namen, IBAN, Geburtsdatum usw. | Info: wird nicht übernommen |
+
+Fehler blockieren den Import, Hinweise müssen ausdrücklich bestätigt werden. Im Audit-Protokoll stehen nur Anzahlen der Korrekturen, nie Werte.
+
+**KI-Vorschläge (optional), `server/ai-assistant.js`:** erkennt Spalten nach Bedeutung (beliebige Bezeichnungen in DE/EN/SL) und Kategorien, die dasselbe in anderen Worten meinen. Aktiv nur mit `ANTHROPIC_API_KEY`, nur auf Klick und nur nach ausdrücklicher Zustimmung je Anfrage.
+
+- Gesendet werden: Spaltenüberschriften, gerundete Spaltenstatistiken (Größenordnung, nicht Einzelwerte), Werte von Spalten mit höchstens 12 verschiedenen Einträgen, Bezeichnungen der Tätigkeiten und Kategorien mit Häufigkeit.
+- Nie gesendet werden: Personalnummern, einzelne Gehälter, Werte von Spalten, deren Überschrift persönlich wirkt (Name, IBAN, Geburtsdatum, Adresse …).
+- Die KI entscheidet nichts: jede Antwort wird gegen die Datei geprüft (nur vorhandene Spalten und Bezeichnungen, keine persönlichen Spalten, keine Gruppen, die sich in Stufe oder Seniorität unterscheiden), und Nutzer:innen übernehmen jeden Vorschlag einzeln. Ob Tätigkeiten gleich oder gleichwertig sind, bleibt eine menschliche Entscheidung nach Art. 4.
+- Modell `claude-opus-5-5` (änderbar mit `AI_ASSISTANT_MODEL`), Limit 15 Anfragen pro Stunde und Firma. Fehler (ausgelastet, nicht erreichbar, abgelehnt) lassen die automatischen Prüfungen unberührt.
+- Datenschutz: Anthropic wird dadurch Auftragsverarbeiter. Vor Aktivierung in Datenschutzhinweis und AV-Vertrag aufnehmen; mit `AI_ASSISTANT=off` bleibt die Funktion abgeschaltet.
+
+Tests: `tests/data-quality.test.js`, `tests/import-assistant.test.js`.
