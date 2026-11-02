@@ -19,6 +19,13 @@ PORT=3000
 DATABASE_URL=postgresql://pay_app:REPLACE_ME@127.0.0.1:5432/pay_transparency
 PSEUDONYM_SECRET=REPLACE_WITH_RANDOM_64_HEX_CHARACTERS
 ADMIN_ENCRYPTION_KEY=REPLACE_WITH_SEPARATE_RANDOM_64_HEX_CHARACTERS
+# Third separate key: encrypts customers' 2FA secrets. Losing it locks 2FA users out, so back it up with the others.
+ACCOUNT_ENCRYPTION_KEY=REPLACE_WITH_THIRD_RANDOM_64_HEX_CHARACTERS
+# Verification and password reset emails. The server refuses to start in production without it.
+SMTP_URL=smtps://USER:PASSWORD@smtp.example.com:465
+MAIL_FROM=Equitensa <no-reply@equitensa.de>
+# Owner panel 2FA is mandatory in production unless this is set to false (not recommended: the panel holds the Stripe keys).
+# ADMIN_REQUIRE_MFA=true
 MARKET_DE_HOSTS=equitensa.de,www.equitensa.de
 MARKET_AT_HOSTS=equitensa.at,www.equitensa.at
 MARKET_SI_HOSTS=equitensa.si,www.equitensa.si
@@ -40,6 +47,8 @@ npm run db:migrate
 npm run admin:setup
 npm start
 ```
+
+Migracije 001–008 pokreću se jednom naredbom; 007 dodaje verifikaciju e-maila i MFA kolone, 008 zahtjeve radnika po članu 7. Postojeći korisnici bez Google prijave morat će jednom potvrditi e-mail.
 
 Provjeriti privilegije DB korisnika za migraciju i zatim ograničiti runtime korisnika prema operativnom modelu. Migracija koristi transakciju i može se ponovno pokrenuti; to nije pun sustav verzioniranih migracija za buduće izmjene.
 
@@ -77,5 +86,9 @@ Trenutno Express ne vjeruje proizvoljnim proxy zaglavljima: rate-limit za klijen
 6. PDF/CSV/XML/TXT se preuzimaju i zadržavaju oznaku radnog nacrta. Provjeriti slovenska slova s instaliranim fontom.
 7. Backup se šifrira i kopira izvan VPS-a; probni restore na zasebnu bazu uspije.
 8. Logovi ne sadrže CSV, bruto plaće, lozinke, cookieje i HRIS ključeve; monitoring pokriva disk, DB i dostupnost.
+
+9. Registracija šalje e-mail za potvrdu na jeziku države firme; bez potvrde se ne otvara radni prostor. Reset lozinke i prijava s MFA kodom rade, a kod za oporavak vrijedi samo jednom.
+10. Za svaku od tri države: uvoz datoteke u formatu njihovog payroll sistema, potvrda, te izvoz svih dokumenata (izvještaj, zajednička procjena) za sve primaoce. Automatizirano: `tests/country-reports.test.js`.
+11. Vlasnik koji izgubi lozinku ili 2FA vraća pristup na serveru naredbom `npm run admin:reset`.
 
 Kada službeni adapteri budu verificirani, dodati test sheme i stvarnu testnu predaju nadležnom tijelu. Ne izlagati neprovjereni build stvarnim kadrovskim podacima.
