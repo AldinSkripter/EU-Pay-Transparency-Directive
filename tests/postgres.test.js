@@ -24,6 +24,7 @@ test('PostgreSQL migration, persistence, tenant constraints and rollback', { ski
   await store.pool.query(await readFile(new URL('../db/007_account_security.sql',import.meta.url),'utf8'));
   await store.pool.query(await readFile(new URL('../db/008_worker_rights.sql',import.meta.url),'utf8'));
   await store.pool.query(await readFile(new URL('../db/009_company_documents.sql',import.meta.url),'utf8'));
+  await store.pool.query(await readFile(new URL('../db/010_api_ingest.sql',import.meta.url),'utf8'));
   const user={id:randomUUID(),company_id:companyA.id,email:`${randomUUID()}@integration.invalid`,password_hash:'test-only'};
   await store.createAccount(companyA,user);
   const googleSub=`google-test-${randomUUID()}`;

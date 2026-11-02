@@ -8,11 +8,13 @@ import { parseImportInput } from './file-parser.js';
 import { payrollRoutes } from './payroll-routes.js';
 import { workerRightsRoutes } from './worker-rights.js';
 import { payCriteriaRoutes } from './pay-criteria.js';
+import { ingestPushRoutes, integrationKeyRoutes, resolveBatch } from './ingest.js';
 import { parseDelimited, suggestMapping, mapImportRecord, validateMapping, inspectImport, validateImportContext } from './importer.js';
 import { marketContext, markets } from './market.js';
 import { hashPassword, verifyPassword, establishSession, sessionToken, hashToken } from './auth.js';
 import { normalizeEmployee, analyze, reportingSchedule } from './pay.js';
 import { providers } from './hris.js';
+import { integrationGuides, requiredData } from './integration-guides.js';
 import { demoRows } from './demo.js';
 import { reportCsv, reportXml, reportPdf, reportText, reportJson, reportXlsx } from './reports.js';
 import { assessmentAudiences, assessmentJson, assessmentText, assessmentPdf, assessmentCsv, assessmentXlsx, assessmentXml } from './assessment.js';
@@ -51,6 +53,8 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     await control.mutate(s=>{s.lastWebhook={at:new Date().toISOString(),eventId:event.id,type:event.type};});
     res.json({received:true});
   });
+  // Machine-to-machine delivery: authenticated by a company API key, so no cookie/Origin rules apply.
+  ingestPushRoutes(app, { store, control });
   app.use('/api', (req, res, next) => {
     res.setHeader('Cache-Control', 'no-store');
     if (!['GET','HEAD','OPTIONS'].includes(req.method)) {
@@ -148,7 +152,7 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     const analysis = analyze(snapshot?.rows || []);
     res.json({ company: req.session.company, year, snapshot: snapshot ? { id: snapshot.id, source: snapshot.source, created_at: snapshot.created_at } : null, analysis, schedule: reportingSchedule(analysis.count), scheduleBasis: 'EU_DIRECTIVE_MINIMUM_NATIONAL_RULES_UNVERIFIED' });
   });
-  app.get('/api/integrations', (req, res) => res.json({ providers, csv: { status: 'available' } }));
+  app.get('/api/integrations', (req, res) => res.json({ providers, csv: { status: 'available' }, guides: integrationGuides, requiredData, push: { status: 'available', endpoint: '/api/ingest/v1/employees', maxRecords: 10000, maxBytes: 4194304 } }));
   app.get('/api/workflow',async(req,res)=> {
     const year=yearValue(req.query.year),snapshot=await store.latestSnapshot(req.session.company.id,year), workflow=await store.getWorkflow(req.session.company.id,year);
     res.json({workflow,readiness:readiness(workflow,analyze(snapshot?.rows || []),snapshot)});
@@ -173,8 +177,8 @@ export function createApp({ store, demo = false, secret, secure = false, origins
   app.get('/api/import/history',async(req,res)=>res.json({batches:await store.importHistory(req.session.company.id,yearValue(req.query.year))}));
   app.post('/api/import', async (req, res) => {
     const year = yearValue(req.body.year);
-    let parsed;
-    try {parsed=await parseImportInput(req.body);if(parsed.selectionRequired)throw new Error('IMPORT_SELECTION_REQUIRED');validateMapping(req.body.mapping,parsed.headers);}
+    let parsed,batch=null;
+    try {batch=await resolveBatch(req,store);if(batch&&batch.reporting_year!==year)throw new Error('BATCH_YEAR_MISMATCH');parsed=await parseImportInput(req.body);if(parsed.selectionRequired)throw new Error('IMPORT_SELECTION_REQUIRED');validateMapping(req.body.mapping,parsed.headers);}
     catch(error){return res.status(422).json({error:error.message});}
     if(req.body.file && req.body.contextConfirmed!==true)return res.status(422).json({error:'IMPORT_CONFIRMATION_REQUIRED'});
     const records=parsed.rows;
@@ -198,10 +202,12 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     const profile={mapping,decimalSeparator:req.body.decimalSeparator??'.',encoding:parsed.encoding||null,confirmed:true};
     const fingerprint=digest({rows,profile,version:'annual-v1',year,country:req.session.company.country});
     const snapshot=await store.saveSnapshot(req.session.company.id,year,rows,parsed.format,{fingerprint,fileHash:parsed.fileHash,structureHash:structure(parsed,year,req.session.company.country),profile,actor:req.session.user.id});
+    if(batch)await store.closeIngestBatch(req.session.company.id,batch.id,'imported');
     res.status(snapshot.replayed?200:201).json({snapshot:{id:snapshot.id,count:rows.length,year},replayed:!!snapshot.replayed});
   });
   app.post('/api/import/preview',async(req,res)=>{
     try {
+      await resolveBatch(req,store);
       const parsed=await parseImportInput(req.body),year=yearValue(req.body.year);
       if(parsed.selectionRequired)return res.json({...parsed,count:0});
       const {headers,rows}=parsed,suggested=suggestMapping(headers);
@@ -213,6 +219,7 @@ export function createApp({ store, demo = false, secret, secure = false, origins
   payrollRoutes(app,{store,secret,yearValue});
   workerRightsRoutes(app,{store,secret,yearValue});
   payCriteriaRoutes(app,{store,yearValue});
+  integrationKeyRoutes(app,{store});
   app.get('/api/reports/:format', async (req, res) => {
     const format = req.params.format;
     if (!['csv','xml','pdf','txt','xlsx','json'].includes(format)) return res.status(400).json({ error: 'INVALID_FORMAT' });

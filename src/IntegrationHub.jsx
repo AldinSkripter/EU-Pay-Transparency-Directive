@@ -1,0 +1,55 @@
+import React,{useEffect,useRef,useState} from 'react';
+import {Plug,KeyRound,Copy,Search,X,Upload,ArrowRight,Inbox,Trash2,Check,ShieldCheck} from 'lucide-react';
+import {api,Button,ArrowButton,Field,Notice,Tag,errorText} from './ui';
+
+const fit={file:{de:'Dateiexport · API-Zugang',sl:'Izvoz datoteke · dostop API'},not_suitable:{de:'Nicht geeignet als Quelle',sl:'Ni primeren vir'}};
+
+export default function IntegrationHub({L,onImport,onUseBatch}) {
+  const lang=L('de','sl'),locale=lang==='sl'?'sl-SI':'de-DE',origin=location.origin;
+  const [info,setInfo]=useState(null),[keys,setKeys]=useState([]),[batches,setBatches]=useState([]),[search,setSearch]=useState(''),[selected,setSelected]=useState(null);
+  const [busy,setBusy]=useState(false),[error,setError]=useState(null),[fresh,setFresh]=useState(null),[copied,setCopied]=useState('');
+  const keyArea=useRef(null);
+  const load=()=>Promise.all([api('/integrations'),api('/integrations/keys'),api('/integrations/batches')]).then(([i,k,b])=>{setInfo(i);setKeys(k.keys);setBatches(b.batches);}).catch(setError);
+  useEffect(()=>{load();},[]);
+  useEffect(()=>{if(!selected)return;const listener=e=>{if(e.key==='Escape')setSelected(null);};document.addEventListener('keydown',listener);return()=>document.removeEventListener('keydown',listener);},[selected]);
+  const run=async fn=>{setBusy(true);setError(null);try{await fn();}catch(e){setError(e);}finally{setBusy(false);}};
+  const copy=(text,id)=>{navigator.clipboard?.writeText(text);setCopied(id);setTimeout(()=>setCopied(''),1800);};
+  const when=iso=>iso?new Date(iso).toLocaleString(locale):'—';
+  if(!info)return <p className="muted">{error?errorText(error,L):L('Wird geladen …','Nalaganje …')}</p>;
+  const endpoint=`${origin}${info.push.endpoint}`,keyShown=fresh?.key||'eqt_…';
+  const jsonExample=`curl -X POST "${endpoint}" \\\n  -H "Authorization: Bearer ${keyShown}" \\\n  -H "Content-Type: application/json" \\\n  -d '{"year":2026,"source":"Personio","records":[{"internal_id":"1001","gender":"female","job_title":"Engineer","worker_category":"Engineering L3","base_annual":60000,"bonuses_annual":3000,"paid_hours_annual":2080,"hours_per_week":40}]}'`;
+  const csvExample=`curl -X POST "${endpoint}?year=2026&source=DATEV" \\\n  -H "Authorization: Bearer ${keyShown}" \\\n  -H "Content-Type: text/csv" \\\n  --data-binary @export.csv`;
+  const guides=info.guides.filter(g=>g.name.toLowerCase().includes(search.toLowerCase())||g.market.toLowerCase().includes(search.toLowerCase()));
+  return <div className="hub">
+    {error&&<Notice tone="error">{errorText(error,L)}</Notice>}
+    <div className="integration-cta"><span className="large-icon"><Plug size={25}/></span><div><h2>{L('Daten direkt zu Equitensa senden.','Podatke pošljite neposredno v Equitensa.')}</h2><p>{L('Jedes System, das eine Datei exportieren oder Daten per HTTPS senden kann, lässt sich anbinden: per Datei-Upload oder mit Ihrem API-Zugang. Nichts wird ohne Ihre Prüfung und Bestätigung übernommen.','Povezati je mogoče vsak sistem, ki lahko izvozi datoteko ali pošlje podatke prek HTTPS: z nalaganjem datoteke ali z dostopom API. Nič se ne prevzame brez vašega pregleda in potrditve.')}</p></div><ArrowButton onClick={onImport}>{L('Datei hochladen','Naloži datoteko')}</ArrowButton></div>
+
+    <section className="panel"><div className="panel-title"><div><span className="eyebrow">{L('EINGEGANGENE LIEFERUNGEN','PREJETE POŠILJKE')}</span><h3>{L('Zur Prüfung bereit','Pripravljeno za pregled')}</h3></div><Inbox size={22}/></div>
+      {!batches.length?<p className="muted">{L('Noch keine Lieferung per API. Gesendete Daten erscheinen hier und werden erst nach Ihrer Bestätigung importiert.','Še ni pošiljk prek API. Poslani podatki se prikažejo tukaj in se uvozijo šele po vaši potrditvi.')}</p>
+      :<div className="table-scroll"><table><thead><tr><th>{L('Quelle','Vir')}</th><th>{L('Jahr','Leto')}</th><th>{L('Datensätze','Zapisi')}</th><th>{L('Eingegangen','Prejeto')}</th><th/></tr></thead><tbody>{batches.map(b=><tr key={b.id}><td><strong>{b.source}</strong></td><td>{b.reporting_year}</td><td>{b.record_count}</td><td>{when(b.created_at)}</td><td className="actions"><Button onClick={()=>onUseBatch(b)}>{L('Prüfen & importieren','Preveri in uvozi')}<ArrowRight size={15}/></Button><Button secondary busy={busy} aria-label={L('Verwerfen','Zavrzi')} onClick={()=>run(async()=>{await api(`/integrations/batches/${b.id}/discard`,{});await load();})}><Trash2 size={15}/></Button></td></tr>)}</tbody></table></div>}</section>
+
+    <section className="panel" ref={keyArea}><div className="panel-title"><div><span className="eyebrow">API</span><h3>{L('API-Zugang für Ihr System','Dostop API za vaš sistem')}</h3></div><KeyRound size={22}/></div>
+      <p>{L('Mit einem Schlüssel senden Ihr HR- oder Payroll-System, Zapier, Make, n8n oder ein Skript Entgeltdaten an Equitensa. Der Schlüssel gilt nur für Ihre Firma, wird nur einmal angezeigt und kann jederzeit gesperrt werden.','S ključem pošilja vaš sistem za kadre ali obračun plač, Zapier, Make, n8n ali skript podatke o plačah v Equitensa. Ključ velja samo za vaše podjetje, prikaže se samo enkrat in ga lahko kadar koli blokirate.')}</p>
+      {fresh&&<div className="key-reveal"><Notice>{L('Jetzt kopieren und sicher speichern. Er wird nicht erneut angezeigt.','Zdaj ga kopirajte in varno shranite. Ne prikaže se znova.')}</Notice><div className="key-line"><code>{fresh.key}</code><Button secondary onClick={()=>copy(fresh.key,'key')}>{copied==='key'?<Check size={15}/>:<Copy size={15}/>}{copied==='key'?L('Kopiert','Kopirano'):L('Kopieren','Kopiraj')}</Button></div></div>}
+      <form className="inline-form" onSubmit={e=>{e.preventDefault();const form=e.currentTarget,label=new FormData(form).get('label');run(async()=>{setFresh(await api('/integrations/keys',{label}));form.reset();await load();});}}><Field label={L('Bezeichnung (z. B. „Personio-Export“)','Oznaka (npr. »izvoz Personio«)')} name="label" required maxLength={80}/><Button type="submit" busy={busy}>{L('Schlüssel erstellen','Ustvari ključ')}</Button></form>
+      {!!keys.length&&<div className="table-scroll"><table><thead><tr><th>{L('Bezeichnung','Oznaka')}</th><th>{L('Beginnt mit','Se začne z')}</th><th>{L('Zuletzt genutzt','Nazadnje uporabljen')}</th><th>{L('Status','Status')}</th><th/></tr></thead><tbody>{keys.map(k=><tr key={k.id}><td><strong>{k.label}</strong></td><td><code>eqt_{k.prefix}…</code></td><td>{when(k.last_used_at)}</td><td><Tag tone={k.revoked_at?'amber':'mint'}>{k.revoked_at?L('Gesperrt','Blokiran'):L('Aktiv','Aktiven')}</Tag></td><td>{!k.revoked_at&&<Button secondary busy={busy} onClick={()=>run(async()=>{await api(`/integrations/keys/${k.id}/revoke`,{});await load();})}>{L('Sperren','Blokiraj')}</Button>}</td></tr>)}</tbody></table></div>}
+      <h4>{L('So senden Sie Daten','Kako pošljete podatke')}</h4>
+      <p>{L('JSON: eine Liste flacher Datensätze; Spaltennamen wie in der Vorlage ordnen sich automatisch zu, andere ordnen Sie in der Vorschau zu.','JSON: seznam ravnih zapisov; imena stolpcev kot v predlogi se preslikajo samodejno, druge preslikate v predogledu.')}</p>
+      <div className="code-block"><pre>{jsonExample}</pre><Button secondary onClick={()=>copy(jsonExample,'json')}>{copied==='json'?<Check size={15}/>:<Copy size={15}/>}</Button></div>
+      <p>{L('Oder eine CSV-Datei direkt:','Ali neposredno datoteko CSV:')}</p>
+      <div className="code-block"><pre>{csvExample}</pre><Button secondary onClick={()=>copy(csvExample,'csv')}>{copied==='csv'?<Check size={15}/>:<Copy size={15}/>}</Button></div>
+      <ul className="hub-facts"><li><ShieldCheck size={15}/>{L(`Bis ${info.push.maxRecords.toLocaleString(locale)} Datensätze oder 4 MB je Lieferung; höchstens 20 offene Lieferungen, die nach 30 Tagen verfallen.`,`Do ${info.push.maxRecords.toLocaleString(locale)} zapisov ali 4 MB na pošiljko; največ 20 odprtih pošiljk, ki zapadejo po 30 dneh.`)}</li><li><ShieldCheck size={15}/>{L('Eine Lieferung ersetzt nie freigegebene Daten: Sie prüfen Zuordnung, Jahr, EUR und Stunden und bestätigen erst dann.','Pošiljka nikoli ne nadomesti potrjenih podatkov: preverite preslikavo, leto, EUR in ure ter šele nato potrdite.')}</li><li><ShieldCheck size={15}/>{L('Personalnummern werden pseudonymisiert; gelieferte Rohdaten werden nach dem Import gelöscht.','Šifre zaposlenih se psevdonimizirajo; poslani surovi podatki se po uvozu izbrišejo.')}</li></ul></section>
+
+    <section className="panel"><div className="panel-title"><h3>{L('Ihr System','Vaš sistem')}</h3><label className="search-box"><Search size={17}/><input aria-label={L('System suchen','Poiščite sistem')} placeholder={L('System suchen …','Poiščite sistem …')} value={search} onChange={e=>setSearch(e.target.value)}/></label></div>
+      <div className="provider-grid">{guides.map((g,i)=><button className="panel provider-card" key={g.id} onClick={()=>setSelected(g)}><span className={`provider-initial p${i%5}`}>{g.name.slice(0,2)}</span><h3>{g.name}</h3><small>{g.market}</small><span>{fit[g.fit][lang]}<ArrowRight size={14}/></span></button>)}</div>
+      {!guides.length&&<Notice>{L('Kein System gefunden. Wählen Sie „Anderes System“: Dateien werden am Inhalt erkannt.','Sistem ni najden. Izberite »Drug sistem«: datoteke se prepoznajo po vsebini.')}</Notice>}</section>
+
+    <section className="panel"><h3>{L('Diese Angaben braucht der Bericht','Te podatke potrebuje poročilo')}</h3><ol className="required-list">{info.requiredData[lang].map(line=><li key={line}>{line}</li>)}</ol></section>
+
+    {selected&&<div className="modal-backdrop" onClick={()=>setSelected(null)}><section role="dialog" aria-modal="true" aria-labelledby="guide-title" className="modal modal-wide" onClick={e=>e.stopPropagation()}><button autoFocus className="icon-btn modal-close" aria-label="Close" onClick={()=>setSelected(null)}><X size={20}/></button><Plug size={30}/><h2 id="guide-title">{selected.name}</h2>
+      <div className="tag-row"><Tag tone={selected.fit==='file'?'mint':'amber'}>{fit[selected.fit][lang]}</Tag>{selected.formats.map(f=><Tag key={f}>{f}</Tag>)}</div>
+      <p>{selected.note[lang]}</p>
+      {selected.steps[lang].length>0&&<ol className="guide-steps">{selected.steps[lang].map(step=><li key={step}>{step}</li>)}</ol>}
+      <div className="button-row">{selected.fit==='file'&&<Button onClick={()=>{setSelected(null);onImport();}}><Upload size={16}/>{L('Datei hochladen','Naloži datoteko')}</Button>}{selected.fit==='file'&&<Button secondary onClick={()=>{setSelected(null);keyArea.current?.scrollIntoView({behavior:'smooth'});}}><KeyRound size={16}/>{L('API-Zugang','Dostop API')}</Button>}</div></section></div>}
+  </div>;
+}

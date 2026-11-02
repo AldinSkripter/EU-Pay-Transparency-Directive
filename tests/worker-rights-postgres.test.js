@@ -15,7 +15,7 @@ test('PostgreSQL worker rights: requests, deadlines as dates, answering, per-com
   await store.pool.end();
   const query = async (sql, params) => { const result = await db.query(sql, params); return { ...result, rowCount: result.affectedRows ?? result.rows.length }; };
   store.pool = { query, connect: async () => ({ query, release() {} }) };
-  for (const name of ['001_initial', '002_self_service', '003_platform_control', '004_google_auth', '005_import_batches', '006_payroll_ledger', '007_account_security', '008_worker_rights', '009_company_documents']) await db.exec(await readFile(new URL(`../db/${name}.sql`, import.meta.url), 'utf8'));
+  for (const name of ['001_initial', '002_self_service', '003_platform_control', '004_google_auth', '005_import_batches', '006_payroll_ledger', '007_account_security', '008_worker_rights', '009_company_documents', '010_api_ingest']) await db.exec(await readFile(new URL(`../db/${name}.sql`, import.meta.url), 'utf8'));
   const a = { id: randomUUID(), name: 'A', country: 'DE' }, b = { id: randomUUID(), name: 'B', country: 'SI' };
   for (const [company, mail] of [[a, 'a@example.test'], [b, 'b@example.test']]) await store.createAccount(company, { id: randomUUID(), company_id: company.id, email: mail, password_hash: 'x' });
 
@@ -45,4 +45,30 @@ test('PostgreSQL worker rights: requests, deadlines as dates, answering, per-com
   await store.saveCompanyDocument(a.id, 'pay_criteria', { ranges: { Engineer: { min: 51000, max: 61000, agreement: 'KV' } }, progression: 'twice' });
   assert.deepEqual(await store.companyDocument(a.id, 'pay_criteria'), { ranges: { Engineer: { min: 51000, max: 61000, agreement: 'KV' } }, progression: 'twice' });
   assert.equal(await store.companyDocument(b.id, 'pay_criteria'), null, 'per company');
+
+  // API keys and deliveries (push integration)
+  const keyId = randomUUID(), hash = 'a'.repeat(64);
+  const created = await store.createApiKey(a.id, { id: keyId, label: 'Personio export', prefix: 'abcd1234', key_hash: hash });
+  assert.equal(created.key_hash, undefined, 'the hash never leaves the store');
+  assert.deepEqual((await store.listApiKeys(a.id)).map(k => [k.label, k.revoked_at]), [['Personio export', null]]);
+  assert.deepEqual(await store.listApiKeys(b.id), []);
+  assert.deepEqual(await store.findApiKey(hash), { id: keyId, company_id: a.id, label: 'Personio export' });
+  assert.equal(await store.findApiKey('b'.repeat(64)), null);
+  assert.equal(await store.revokeApiKey(b.id, keyId), false, 'another company cannot revoke it');
+  const batch = await store.createIngestBatch(a.id, { key_id: keyId, source: 'DATEV', reporting_year: 2026, record_count: 12, payload: '[{"a":1,"b":2}]' });
+  assert.equal(batch.payload, undefined);
+  assert.equal(await store.countPendingBatches(a.id), 1);
+  assert.equal((await store.listIngestBatches(a.id))[0].source, 'DATEV');
+  assert.equal(await store.ingestBatch(b.id, batch.id), null, 'per company');
+  assert.equal((await store.ingestBatch(a.id, batch.id)).payload, '[{"a":1,"b":2}]');
+  assert.equal(await store.closeIngestBatch(b.id, batch.id, 'imported'), false);
+  assert.equal(await store.closeIngestBatch(a.id, batch.id, 'imported'), true);
+  assert.equal(await store.closeIngestBatch(a.id, batch.id, 'imported'), false, 'closed once');
+  assert.equal((await store.ingestBatch(a.id, batch.id)).payload, '', 'delivered data is wiped on close');
+  const old = await store.createIngestBatch(a.id, { source: 'old', reporting_year: 2026, record_count: 1, payload: '[]' });
+  assert.equal(await store.expireIngestBatches(new Date(Date.now() + 60000).toISOString()), 1);
+  assert.equal((await store.ingestBatch(a.id, old.id)).status, 'discarded');
+  assert.equal(await store.revokeApiKey(a.id, keyId), true);
+  assert.equal(await store.findApiKey(hash), null, 'revoked keys do not authenticate');
+  assert.equal((await store.company(a.id)).name, 'A');
 });

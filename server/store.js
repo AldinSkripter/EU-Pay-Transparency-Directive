@@ -4,7 +4,18 @@ import pg from 'pg';
 const userFields=['email_verified_at','password_hash','mfa_secret_enc','mfa_pending_enc','mfa_backup_hashes','mfa_last_step'];
 export class MemoryStore {
   userTokens = new Map();
-  infoRequests = new Map(); rightsNotices = new Map(); companyDocuments = new Map();
+  infoRequests = new Map(); rightsNotices = new Map(); companyDocuments = new Map(); apiKeys = new Map(); ingestBatches = new Map();
+  async company(companyId) {return structuredClone(this.companies.get(companyId)||null);}
+  async createApiKey(companyId,key) {const row={...key,company_id:companyId,created_at:new Date().toISOString(),last_used_at:null,revoked_at:null};this.apiKeys.set(key.id,row);return {...row,key_hash:undefined};}
+  async listApiKeys(companyId) {return [...this.apiKeys.values()].filter(k=>k.company_id===companyId).sort((a,b)=>b.created_at.localeCompare(a.created_at)).map(({key_hash,...rest})=>({...rest}));}
+  async revokeApiKey(companyId,id) {const row=this.apiKeys.get(id);if(!row||row.company_id!==companyId)return false;row.revoked_at??=new Date().toISOString();return true;}
+  async findApiKey(hash) {const row=[...this.apiKeys.values()].find(k=>k.key_hash===hash);if(!row||row.revoked_at)return null;row.last_used_at=new Date().toISOString();return {id:row.id,company_id:row.company_id,label:row.label};}
+  async createIngestBatch(companyId,batch) {const row={id:randomUUID(),company_id:companyId,status:'pending',created_at:new Date().toISOString(),...batch};this.ingestBatches.set(row.id,row);const {payload,...meta}=row;return meta;}
+  async listIngestBatches(companyId) {return [...this.ingestBatches.values()].filter(b=>b.company_id===companyId&&b.status==='pending').sort((a,b)=>b.created_at.localeCompare(a.created_at)).map(({payload,...meta})=>meta);}
+  async ingestBatch(companyId,id) {const row=this.ingestBatches.get(id);return row&&row.company_id===companyId?structuredClone(row):null;}
+  async closeIngestBatch(companyId,id,status) {const row=this.ingestBatches.get(id);if(!row||row.company_id!==companyId||row.status!=='pending')return false;row.status=status;row.closed_at=new Date().toISOString();row.payload='';return true;}
+  async countPendingBatches(companyId) {return [...this.ingestBatches.values()].filter(b=>b.company_id===companyId&&b.status==='pending').length;}
+  async expireIngestBatches(olderThan) {let n=0;for(const row of this.ingestBatches.values())if(row.status==='pending'&&row.created_at<olderThan){row.status='discarded';row.payload='';n++;}return n;}
   async companyDocument(companyId,kind) {return structuredClone(this.companyDocuments.get(`${companyId}:${kind}`)||null);}
   async saveCompanyDocument(companyId,kind,document) {this.companyDocuments.set(`${companyId}:${kind}`,structuredClone(document));}
   async listInfoRequests(companyId) {return structuredClone([...this.infoRequests.values()].filter(r=>r.company_id===companyId).sort((a,b)=>a.due_on.localeCompare(b.due_on)||a.created_at.localeCompare(b.created_at)));}
@@ -129,6 +140,17 @@ export class MemoryStore {
 
 export class PostgresStore {
   constructor(connectionString) { this.pool = new pg.Pool({ connectionString, max: 10 }); }
+  async company(companyId) {return (await this.pool.query('SELECT id,name,country FROM companies WHERE id=$1',[companyId])).rows[0]||null;}
+  async createApiKey(companyId,k) {return (await this.pool.query('INSERT INTO api_keys(id,company_id,label,prefix,key_hash,created_by) VALUES($1,$2,$3,$4,$5,$6) RETURNING id,company_id,label,prefix,created_at,last_used_at,revoked_at',[k.id,companyId,k.label,k.prefix,k.key_hash,k.created_by||null])).rows[0];}
+  async listApiKeys(companyId) {return (await this.pool.query('SELECT id,company_id,label,prefix,created_at,last_used_at,revoked_at FROM api_keys WHERE company_id=$1 ORDER BY created_at DESC',[companyId])).rows;}
+  async revokeApiKey(companyId,id) {return (await this.pool.query('UPDATE api_keys SET revoked_at=COALESCE(revoked_at,now()) WHERE company_id=$1 AND id=$2',[companyId,id])).rowCount>0;}
+  async findApiKey(hash) {return (await this.pool.query('UPDATE api_keys SET last_used_at=now() WHERE key_hash=$1 AND revoked_at IS NULL RETURNING id,company_id,label',[hash])).rows[0]||null;}
+  async createIngestBatch(companyId,b) {return (await this.pool.query('INSERT INTO ingest_batches(id,company_id,key_id,source,reporting_year,record_count,payload) VALUES($1,$2,$3,$4,$5,$6,$7) RETURNING id,key_id,source,reporting_year,record_count,status,created_at',[randomUUID(),companyId,b.key_id||null,b.source,b.reporting_year,b.record_count,b.payload])).rows[0];}
+  async listIngestBatches(companyId) {return (await this.pool.query("SELECT id,key_id,source,reporting_year,record_count,status,created_at FROM ingest_batches WHERE company_id=$1 AND status='pending' ORDER BY created_at DESC",[companyId])).rows;}
+  async ingestBatch(companyId,id) {return (await this.pool.query('SELECT id,key_id,source,reporting_year,record_count,status,created_at,payload FROM ingest_batches WHERE company_id=$1 AND id=$2',[companyId,id])).rows[0]||null;}
+  async closeIngestBatch(companyId,id,status) {return (await this.pool.query("UPDATE ingest_batches SET status=$3,closed_at=now(),payload='' WHERE company_id=$1 AND id=$2 AND status='pending'",[companyId,id,status])).rowCount>0;}
+  async countPendingBatches(companyId) {return (await this.pool.query("SELECT count(*)::int AS n FROM ingest_batches WHERE company_id=$1 AND status='pending'",[companyId])).rows[0].n;}
+  async expireIngestBatches(olderThan) {return (await this.pool.query("UPDATE ingest_batches SET status='discarded',closed_at=now(),payload='' WHERE status='pending' AND created_at<$1",[olderThan])).rowCount;}
   async companyDocument(companyId,kind) {return (await this.pool.query('SELECT document FROM company_documents WHERE company_id=$1 AND kind=$2',[companyId,kind])).rows[0]?.document||null;}
   async saveCompanyDocument(companyId,kind,document) {await this.pool.query('INSERT INTO company_documents(company_id,kind,document) VALUES($1,$2,$3) ON CONFLICT(company_id,kind) DO UPDATE SET document=$3,updated_at=now()',[companyId,kind,JSON.stringify(document)]);}
   async listInfoRequests(companyId) {return (await this.pool.query("SELECT id,company_id,to_char(received_on,'YYYY-MM-DD') AS received_on,to_char(due_on,'YYYY-MM-DD') AS due_on,channel,requester_label,note,status,to_char(answered_on,'YYYY-MM-DD') AS answered_on,answer_summary,created_at FROM info_requests WHERE company_id=$1 ORDER BY due_on,created_at",[companyId])).rows;}
