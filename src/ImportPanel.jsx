@@ -1,43 +1,45 @@
 import React,{useEffect,useState} from 'react';
 import {Upload,Download,ArrowRight} from 'lucide-react';
 import {api,Button,ArrowButton,Tag,TextField,CheckField,Notice,download,template,errorText} from './ui';
+import {acceptAttribute,textEncodings,formatSummary} from '../shared/import-formats.js';
 
 const required=['internal_id','gender','job_title','worker_category','base_annual','paid_hours_annual','hours_per_week'];
 const encodeFile=file=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('INVALID_FILE'));reader.onload=()=>resolve({name:file.name,base64:String(reader.result).split(',')[1]});reader.readAsDataURL(file);});
 
 export default function ImportPanel({L,year,perform,busy,onImported,snapshot}) {
   const [csv,setCsv]=useState(''),[file,setFile]=useState(null),[preview,setPreview]=useState(null),[mapping,setMapping]=useState({});
-  const [sheet,setSheet]=useState(''),[headerRow,setHeaderRow]=useState(1),[recordPath,setRecordPath]=useState(''),[encoding,setEncoding]=useState('');
+  const [sheet,setSheet]=useState(''),[headerRow,setHeaderRow]=useState(1),[recordPath,setRecordPath]=useState(''),[encoding,setEncoding]=useState(''),[zipEntry,setZipEntry]=useState('');
   const [decimalSeparator,setDecimalSeparator]=useState('.'),[confirmed,setConfirmed]=useState(false),[history,setHistory]=useState([]),[revision,setRevision]=useState(0);
   const [choices,setChoices]=useState(null);
   useEffect(()=>{setPreview(null);setConfirmed(false);let current=true;api(`/import/history?year=${year}`).then(r=>{if(current)setHistory(r.batches);}).catch(()=>{if(current)setHistory([]);});return()=>{current=false;};},[year,revision]);
   const invalidate=()=>{setPreview(null);setConfirmed(false);};
   const fields=[['internal_id',L('Interne ID','Interni ID')],['gender',L('Geschlecht','Spol')],['job_title',L('Tätigkeit','Delovno mesto')],['worker_category',L('Gleichwertige Kategorie','Enakovredna kategorija')],['job_category_kv',L('KV-Stufe (optional)','Stopnja KP (neobvezno)')],['base_annual',L('Jahresgrundvergütung (€)','Letno osnovno plačilo (€)')],['bonuses_annual',L('Jährliche variable Vergütung (€, optional)','Letno variabilno plačilo (€, neobvezno)')],['paid_hours_annual',L('Bezahlte Jahresstunden','Letne plačane ure')],['hours_per_week',L('Wochenstunden','Tedenske ure')]];
-  const payload=()=>({...file?{file}:{csv},year,sheet:sheet||undefined,headerRow:Number(headerRow),recordPath:recordPath||undefined,encoding:encoding||undefined});
+  const payload=()=>({...file?{file}:{csv},year,sheet:sheet||undefined,headerRow:Number(headerRow),recordPath:recordPath||undefined,zipEntry:zipEntry||undefined,encoding:encoding||undefined});
   const choose=selected=>perform(async()=>{
     if(!selected)return;
     if(selected.size>4*1024*1024)throw new Error('PAYLOAD_TOO_LARGE');
-    const uploaded=await encodeFile(selected);setFile(uploaded);setCsv('');setSheet('');setHeaderRow(1);setRecordPath('');setChoices(null);invalidate();
+    const uploaded=await encodeFile(selected);setFile(uploaded);setCsv('');setSheet('');setHeaderRow(1);setRecordPath('');setZipEntry('');setChoices(null);invalidate();
   });
   const showPreview=()=>perform(async()=>{
     invalidate();const result=await api('/import/preview',payload());setChoices(result);
     if(result.selectionRequired)return;
     setPreview(result);setMapping(result.mapping||{});
     setDecimalSeparator(result.savedProfile?.decimalSeparator||result.context?.decimalSeparator||'.');
-    if(result.sheet)setSheet(result.sheet);if(result.recordPath)setRecordPath(result.recordPath);
+    if(result.sheet)setSheet(result.sheet);if(result.recordPath)setRecordPath(result.recordPath);if(result.zipEntry)setZipEntry(result.zipEntry);
   });
   const warnings={REPORTING_PERIOD_NOT_IN_FILE:L('Kein Berichtsjahr in der Datei: Jahresbezug bestätigen.','Datoteka nima leta poročanja: potrdite letno obdobje.'),CURRENCY_NOT_IN_FILE:L('Keine Währung in der Datei: EUR bestätigen.','Datoteka nima valute: potrdite EUR.'),AMBIGUOUS_DECIMAL_FORMAT:L('Uneinheitliche Zahlenformate: Daten vor dem Import korrigieren.','Neenotne oblike števil: pred uvozom popravite podatke.'),PAY_BASIS_REQUIRES_REVIEW:L('Bruttobetrag ist nicht automatisch Jahresgrundvergütung. Bedeutung und Zeitraum prüfen.','Bruto znesek ni samodejno letno osnovno plačilo. Preverite pomen in obdobje.')};
   return <section className="panel import-panel">
     {snapshot&&<Notice>{L('Ein neuer Import ersetzt den aktuellen Arbeitsdatenstand. Kategorien und Freigaben erneut prüfen. Ein identischer erneuter Import erstellt keinen neuen Datenstand.','Nov uvoz nadomesti trenutne podatke. Ponovno preverite kategorije in potrditve. Enak ponovni uvoz ne ustvari novega podatkovnega posnetka.')}</Notice>}
-    <div className="import-intro"><span className="large-icon"><Upload size={27}/></span><div><h3>{L('Gehaltsdaten importieren','Uvoz podatkov o plačah')}</h3><p>{L('XLSX, XLS, XML, CSV, TXT oder TSV · bis 4 MB · eine Person je Jahresdatensatz in EUR.','XLSX, XLS, XML, CSV, TXT ali TSV · do 4 MB · en letni zapis na zaposlenega v EUR.')}</p></div><Button secondary onClick={()=>download(template,'equitensa-template.csv')}><Download size={16}/>{L('Vorlage','Predloga')}</Button></div>
-    <label className="upload-zone" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(!busy)choose(e.dataTransfer.files?.[0]);}}><Upload size={25}/><strong>{file?.name||L('Datei auswählen oder hier ablegen','Izberite ali spustite datoteko')}</strong><span>{L('Inhalt wird geprüft; der Dateiname bestimmt das Format nicht.','Preveri se vsebina; ime datoteke ne določa oblike.')}</span><input type="file" disabled={busy} accept=".xlsx,.xls,.xml,.csv,.txt,.tsv" onChange={e=>{choose(e.target.files?.[0]);e.target.value='';}}/></label>
+    <div className="import-intro"><span className="large-icon"><Upload size={27}/></span><div><h3>{L('Gehaltsdaten importieren','Uvoz podatkov o plačah')}</h3><p>{L(`${formatSummary} · bis 4 MB · eine Person je Jahresdatensatz in EUR.`,`${formatSummary} · do 4 MB · en letni zapis na zaposlenega v EUR.`)}</p></div><Button secondary onClick={()=>download(template,'equitensa-template.csv')}><Download size={16}/>{L('Vorlage','Predloga')}</Button></div>
+    <label className="upload-zone" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(!busy)choose(e.dataTransfer.files?.[0]);}}><Upload size={25}/><strong>{file?.name||L('Datei auswählen oder hier ablegen','Izberite ali spustite datoteko')}</strong><span>{L('Inhalt wird geprüft; der Dateiname bestimmt das Format nicht.','Preveri se vsebina; ime datoteke ne določa oblike.')}</span><input type="file" disabled={busy} accept={acceptAttribute} onChange={e=>{choose(e.target.files?.[0]);e.target.value='';}}/></label>
     {file&&<Button secondary disabled={busy} onClick={()=>{setFile(null);setChoices(null);invalidate();}}>{L('Datei entfernen','Odstrani datoteko')}</Button>}
     {!file&&<TextField disabled={busy} label={L('Oder CSV / TXT einfügen','Ali prilepite CSV / TXT')} value={csv} placeholder={template} onChange={e=>{setCsv(e.target.value);setChoices(null);invalidate();}} spellCheck="false"/>}
-    <div className="form-grid"><label className="field"><span>{L('Textkodierung','Kodiranje besedila')}</span><select disabled={busy} value={encoding} onChange={e=>{setEncoding(e.target.value);invalidate();}}><option value="">UTF-8 / BOM</option>{['utf-8','utf-16le','utf-16be','windows-1250','windows-1252'].map(e=><option key={e}>{e}</option>)}</select></label>
-    <label className="field"><span>{L('Excel: Zeile der Spaltenüberschriften','Excel: vrstica z naslovi stolpcev')}</span><input type="number" disabled={busy} min={1} max={50} value={headerRow} onChange={e=>{setHeaderRow(e.target.value);invalidate();}}/></label></div>
+    <div className="form-grid"><label className="field"><span>{L('Textkodierung','Kodiranje besedila')}</span><select disabled={busy} value={encoding} onChange={e=>{setEncoding(e.target.value);invalidate();}}><option value="">UTF-8 / BOM</option>{textEncodings.map(e=><option key={e.id} value={e.id}>{e.label}</option>)}</select></label>
+    <label className="field"><span>{L('Zeile der Spaltenüberschriften (Excel / Text)','Vrstica z naslovi stolpcev (Excel / besedilo)')}</span><input type="number" disabled={busy} min={1} max={50} value={headerRow} onChange={e=>{setHeaderRow(e.target.value);invalidate();}}/></label></div>
     {!!choices?.sheets?.length&&<label className="field"><span>{L('Excel-Arbeitsblatt','Excelov delovni list')}</span><select disabled={busy} value={sheet} onChange={e=>{setSheet(e.target.value);invalidate();}}><option value="">{L('Arbeitsblatt auswählen','Izberite delovni list')}</option>{choices.sheets.map(s=><option key={s}>{s}</option>)}</select></label>}
-    {!!choices?.recordPaths?.length&&<label className="field"><span>{L('XML: Datensatzpfad','XML: pot do zapisa')}</span><select disabled={busy} value={recordPath} onChange={e=>{setRecordPath(e.target.value);invalidate();}}><option value="">{L('Datensätze auswählen','Izberite zapise')}</option>{choices.recordPaths.map(p=><option key={p}>{p}</option>)}</select></label>}
-    {choices?.selectionRequired&&<Notice>{L('Bitte Arbeitsblatt oder XML-Datensatzpfad wählen und Vorschau erneut öffnen.','Izberite delovni list ali pot XML in ponovno odprite predogled.')}</Notice>}
+    {!!choices?.recordPaths?.length&&<label className="field"><span>{L('XML / JSON: Datensatzpfad','XML / JSON: pot do zapisa')}</span><select disabled={busy} value={recordPath} onChange={e=>{setRecordPath(e.target.value);invalidate();}}><option value="">{L('Datensätze auswählen','Izberite zapise')}</option>{choices.recordPaths.map(p=><option key={p}>{p}</option>)}</select></label>}
+    {!!choices?.zipEntries?.length&&<label className="field"><span>{L('Datei im ZIP-Archiv','Datoteka v arhivu ZIP')}</span><select disabled={busy} value={zipEntry} onChange={e=>{setZipEntry(e.target.value);invalidate();}}><option value="">{L('Datei auswählen','Izberite datoteko')}</option>{choices.zipEntries.map(p=><option key={p}>{p}</option>)}</select></label>}
+    {choices?.selectionRequired&&<Notice>{L('Bitte Arbeitsblatt, Datei im ZIP oder Datensatzpfad (XML/JSON) wählen und die Vorschau erneut öffnen.','Izberite delovni list, datoteko v ZIP ali pot do zapisov (XML/JSON) in ponovno odprite predogled.')}</Notice>}
     <Button secondary disabled={!file&&!csv.trim()} busy={busy} onClick={showPreview}>{L('Vorschau & Spaltenzuordnung','Predogled in preslikava stolpcev')}<ArrowRight size={16}/></Button>
     {preview&&<>
       <div className="panel-title"><h3>{L('Spalten zuordnen','Preslikajte stolpce')}</h3><Tag>{preview.count} · {preview.format.toUpperCase()}</Tag></div>

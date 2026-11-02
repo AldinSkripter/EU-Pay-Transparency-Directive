@@ -2,16 +2,16 @@ import { parse } from 'csv-parse/sync';
 
 export const importFields = ['internal_id','gender','job_title','worker_category','job_category_kv','base_annual','bonuses_annual','paid_hours_annual','hours_per_week'];
 const aliases = {
-  internal_id: ['Personalnummer','Employee ID','Šifra zaposlenega','Personal-Nr','Personalnummer/in','Matična številka zaposlenega'],
-  gender: ['Geschlecht','Spol','Sex'],
-  job_title: ['Tätigkeit','Job title','Delovno mesto','Berufsbezeichnung'],
-  worker_category: ['Worker category','Enakovredna kategorija','Vergleichsgruppe'],
-  job_category_kv: ['KV-Stufe','Stopnja KP'],
+  internal_id: ['Personalnummer','Employee ID','Šifra zaposlenega','Personal-Nr','Personalnummer/in','Matična številka zaposlenega','Pers.-Nr.','Personalnr','Mitarbeiternummer','PNR','DN-Nr','Dienstnehmernummer','Mitarbeiter-ID','Šifra delavca','Številka zaposlenega','Evidenčna številka'],
+  gender: ['Geschlecht','Spol','Sex','Gender','Geschl.','Spol zaposlenega','Geschlecht (m/w/d)'],
+  job_title: ['Tätigkeit','Job title','Delovno mesto','Berufsbezeichnung','Position','Stelle','Funktion','Stellenbezeichnung','Beschäftigung','Naziv delovnega mesta','Poklic','Funkcija'],
+  worker_category: ['Worker category','Enakovredna kategorija','Vergleichsgruppe','Entgeltgruppe','Verwendungsgruppe','Gehaltsgruppe','Tarifgruppe','Job family','Plačilni razred','Tarifni razred','Kategorija zaposlenih'],
+  job_category_kv: ['KV-Stufe','Stopnja KP','KV-Einstufung','Kollektivvertrag Stufe','Tarifstufe','Verwendungsgruppenjahr'],
   // Only explicitly annual amounts: generic Bruttogehalt/Bruto plača are ambiguous.
-  base_annual: ['Jahresgrundvergütung','Annual base pay','Letno osnovno plačilo','Jahresgrundbezug','Letna osnovna bruto plača'],
-  bonuses_annual: ['Jährliche variable Vergütung','Annual variable pay','Letno variabilno plačilo'],
-  paid_hours_annual: ['Bezahlte Jahresstunden','Annual paid hours','Letne plačane ure'],
-  hours_per_week: ['Wochenstunden','Weekly hours','Tedenske ure'],
+  base_annual: ['Jahresgrundvergütung','Annual base pay','Letno osnovno plačilo','Jahresgrundbezug','Letna osnovna bruto plača','Jahresgrundgehalt','Grundgehalt jährlich','Basic annual salary','Letna osnovna plača','Letna osnovna bruto plača zaposlenega'],
+  bonuses_annual: ['Jährliche variable Vergütung','Annual variable pay','Letno variabilno plačilo','Jahresvariable Vergütung','Variable Vergütung jährlich','Jahresbonus','Letni bonusi','Letni variabilni del plače'],
+  paid_hours_annual: ['Bezahlte Jahresstunden','Annual paid hours','Letne plačane ure','Jahresarbeitsstunden','Bezahlte Stunden jährlich','Letne ure','Letno število plačanih ur'],
+  hours_per_week: ['Wochenstunden','Weekly hours','Tedenske ure','Wochenarbeitszeit','Wöchentliche Arbeitszeit','Weekly working hours','Tedenski delovni čas','Delovni čas na teden','Wochenarbeitsstunden'],
 };
 const key = value => value.normalize('NFKD').replace(/\p{M}/gu,'').toLowerCase().replace(/[^a-z0-9]/g,'');
 const localHeader = header => header.split('.').at(-1).replace(/^@/,'').split(':').at(-1);
@@ -31,6 +31,39 @@ export function parseDelimited(text) {
   }
   if (candidates.length !== 1) throw new Error('INVALID_CSV');
   return candidates[0];
+}
+
+// Older ASC / DAT / LST / PRN exports align columns with spaces. Column boundaries are the vertical bands
+// that stay blank in every line; header names come from the first line. The preview shows the result and
+// the user confirms the mapping, so a wrong split is visible before anything is imported.
+export function parseFixedWidth(text) {
+  if (typeof text !== 'string' || Buffer.byteLength(text) > 4 * 1024 * 1024 || /[\u0000-\u0008\u000e-\u001f]/.test(text)) throw new Error('INVALID_CSV');
+  const lines = text.replace(/^\uFEFF/, '').split(/\r\n|\n|\r/).filter(line => line.trim());
+  if (lines.length < 2 || lines.length > 10001) throw new Error('INVALID_CSV');
+  const width = Math.max(...lines.map(line => line.length));
+  if (width > 1000) throw new Error('INVALID_CSV');
+  const occupied = Array(width).fill(false);
+  for (const line of lines) for (let i = 0; i < line.length; i++) if (line[i] !== ' ') occupied[i] = true;
+  const bands = gap => {
+    const out = [];
+    let start = -1, last = -1;
+    for (let i = 0; i < width; i++) {
+      if (occupied[i]) { if (start < 0) start = i; last = i; }
+      else if (start >= 0 && i - last >= gap) { out.push([start, last + 1]); start = -1; }
+    }
+    if (start >= 0) out.push([start, last + 1]);
+    return out;
+  };
+  // Two blank positions first so that "Job title" stays one column; fall back to one for tightly packed files.
+  for (const gap of [2, 1]) {
+    const columns = bands(gap);
+    if (columns.length < 2 || columns.length > 200) continue;
+    const headers = columns.map(([from, to]) => lines[0].slice(from, to).trim());
+    if (headers.some(h => !h || h.length > 255 || ['__proto__', 'constructor', 'prototype'].includes(h)) || new Set(headers).size !== headers.length) continue;
+    const rows = lines.slice(1).map(line => Object.fromEntries(headers.map((h, i) => [h, line.slice(columns[i][0], columns[i][1]).trim()])));
+    return { delimiter: null, headers, rows, columns };
+  }
+  throw new Error('INVALID_CSV');
 }
 
 export function suggestMapping(headers) {
