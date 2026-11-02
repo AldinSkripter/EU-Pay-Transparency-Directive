@@ -1,6 +1,6 @@
 # Equitensa · EU Pay Transparency
 
-Pregled zahtjeva iz razvojne specifikacije v2 i backlog: [Development v2](docs/DEVELOPMENT-V2.md). Uvoz podržava XLSX/XLS/XML/CSV/TXT/TSV, izbor lista i zaglavlja, DE/SL/EN prijedloge mapiranja, tenant profile i historiju importa. Izvoz: PDF/XLSX/CSV/JSON/XML/TXT. [API i sigurnosne granice importa](docs/IMPORT-ENGINE.md). Za postojeću bazu pokrenuti `npm run db:migrate` radi nove migracije 005.
+Pregled zahtjeva iz razvojne specifikacije v2 i backlog: [Development v2](docs/DEVELOPMENT-V2.md). Uvoz podržava XLSX/XLS/XML/CSV/TXT/TSV, izbor lista i zaglavlja, DE/SL/EN prijedloge mapiranja, tenant profile i historiju importa. Izvoz: PDF/XLSX/CSV/JSON/XML/TXT. [API i sigurnosne granice importa](docs/IMPORT-ENGINE.md). Za postojeću bazu pokrenuti `npm run db:migrate` radi novih migracija 005 (import batchevi) i 006 (mjesečni payroll ledger).
 
 Samostalna B2B aplikacija za Njemačku, Austriju i Sloveniju, u ovom repozitoriju. Cilj: jedan IONOS VPS, Ubuntu 24.04 i Plesk.
 
@@ -15,6 +15,7 @@ Brend je **Equitensa**, s kupljenim domenama `equitensa.de`, `equitensa.at` i `e
 - Lokalna simulacija kupnje bez naplate; konfigurabilni Stripe Checkout, potpisani webhook, idempotentni lifecycle događaji i Customer Portal.
 - Njemački/slovenski interfejs, jezik prema domeni, zasebna država firme.
 - Vođeni proces: CSV sa mapiranjem i pregledom → obuhvat → četiri kriterija jednakovrijednog rada → svih sedam EU grupa pokazatelja → objašnjenja i mjere → potvrda → paket prema primaocu.
+- Izvještaji sadrže pokazatelje označene prema članu 9(1) a–g (DE/SL), uz javni paket samo a–f ([server/article9.js](server/article9.js)).
 - Godišnji/satni pokazatelji, osnovna/varijabilna naknada, kvartili, zaštićene male grupe i 5% tracker.
 - PDF s naslovnicom, XLSX, CSV, JSON, XML i TXT. Nacionalni paket a–g, javni a–f, zasebne interne bilješke; plaćeni završni izvoz zahtijeva potvrđene radne korake.
 - Potvrde vezane za snimak; novi podaci i materijalne promjene traže novu potvrdu. Export audit zadržava user, snimak, verziju pravila i provjeru.
@@ -41,7 +42,7 @@ npm test
 npm run build
 ```
 
-53 testa prolaze lokalno, uključujući PostgreSQL WASM test trajnosti i rollbacka. Native PostgreSQL test je preskočen bez testne baze. Browser tok provjeren: odabir paketa → registracija → testkupnja → CSV mapiranje → kriteriji → mjere → potvrda → dostupno pripremljeno izvješće. Browser okruženje nije potvrdilo preuzimanje fajla događajem download; PDF/CSV/XML/TXT generatori provjereni API testovima. [CI](.github/workflows/ci.yml) uključuje PostgreSQL 16 servis, ali nije izvršen u ovoj sesiji.
+69 testova prolazi lokalno (1 preskočen), uključujući PostgreSQL WASM test trajnosti i rollbacka. Native PostgreSQL test je preskočen bez testne baze. Browser tok provjeren: odabir paketa → registracija → testkupnja → CSV mapiranje → kriteriji → mjere → potvrda → dostupno pripremljeno izvješće. Browser okruženje nije potvrdilo preuzimanje fajla događajem download; PDF/CSV/XML/TXT generatori provjereni API testovima. [CI](.github/workflows/ci.yml) uključuje PostgreSQL 16 servis, ali nije izvršen u ovoj sesiji.
 
 ## PostgreSQL i naplata
 

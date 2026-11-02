@@ -4,6 +4,8 @@ import { existsSync } from 'node:fs';
 import { analyze } from './pay.js';
 import { regulatory } from './regulatory.js';
 import { readiness } from './workflow.js';
+import { article9, article9Rows } from './article9.js';
+const art9=(company,snapshot,analysis)=>article9(analysis,{country:company.country,audience:snapshot.audience||'internal'});
 const labels = {
   DE: { title: 'Entgelttransparenz · Arbeitsbericht', draft: 'ENTWURF · Keine behördlich validierte Vorlage', year: 'Berichtsjahr', count: 'Beschäftigte', mean: 'Mittlere Entgeltlücke (Stunde)', median: 'Mediane Entgeltlücke (Stunde)', group: 'Beschäftigtenkategorie', note: 'Ein Prüfhinweis ab 5 % ist keine automatische Feststellung einer Diskriminierung. Kleine Gruppen werden zum Schutz personenbezogener Daten unterdrückt.' },
   SI: { title: 'Preglednost plač · Delovno poročilo', draft: 'OSNUTEK · Predloga ni potrjena za uradno oddajo', year: 'Leto poročanja', count: 'Zaposleni', mean: 'Povprečna plačna vrzel (ura)', median: 'Mediana plačne vrzeli (ura)', group: 'Kategorija zaposlenih', note: 'Opozorilo pri 5 % ni samodejna ugotovitev diskriminacije. Majhne skupine so skrite zaradi varstva osebnih podatkov.' },
@@ -38,7 +40,7 @@ export function reportText(company, snapshot) {
     `${si?'Datum oddaje (navedba uporabnika)':'Meldedatum (Angabe des Nutzers)'}: ${w.reportingDate || '—'}`,
     ...readiness(w,a,snapshot).assessments.map(r=>`${r.category}: ${si?'Šestmesečni rok':'Sechsmonatsfrist'} ${r.deadline || '—'}; ${si?'Preverite skupno oceno':'Gemeinsame Bewertung prüfen'}: ${r.jointAssessmentRequired}`),
   ];
-  return [t.title, statusLabel(company,snapshot), company.name, `${t.year}: ${snapshot.reporting_year}`, `Snapshot: ${snapshot.id}`, `Audience: ${snapshot.audience || 'internal'}`, `Rules: ${regulatory.version}`, `${t.count}: ${a.count}`, `${t.mean}: ${percent(a.mean_gap)}`, `${t.median}: ${percent(a.median_gap)}`, ...Object.entries(fields).map(([key,label])=>`${label}: ${percent(a[key])}`), '', ...groups.map(g => `${t.group}: ${g.category} | n=${g.count}\n${t.mean}: ${percent(g.mean_gap)} | ${fields.base_gap}: ${percent(g.base_gap)} | ${fields.variable_gap}: ${percent(g.variable_gap)}\n${fields.annual_base_gap}: ${percent(g.annual_base_gap)} | ${fields.annual_variable_gap}: ${percent(g.annual_variable_gap)}`), '', ...a.quartiles.map(q => `Q${q.quartile}: M=${percent(q.male_percent)} F=${percent(q.female_percent)}`), '', t.note, `Method: ${a.methodology}`, si?'Uradni nacionalni kanal in shema nista preverjena. Dokument ni potrdilo uradne oddaje.':'Nationaler Meldekanal und amtliches Schema sind nicht verifiziert. Dieses Dokument bestätigt keine amtliche Einreichung.', regulatory.source,...annex].join('\n');
+  return [t.title, statusLabel(company,snapshot), company.name, `${t.year}: ${snapshot.reporting_year}`, `Snapshot: ${snapshot.id}`, `Audience: ${snapshot.audience || 'internal'}`, `Rules: ${regulatory.version}`, `${t.count}: ${a.count}`, '', 'ARTICLE 9(1) · Directive (EU) 2023/970', ...art9(company,snapshot,a).filter(i=>i.letter!=='g').flatMap(i=>[`(${i.letter}) ${i.title}`,...(Array.isArray(i.values)?i.values.map(v=>`    Q${v.quartile}: M=${percent(v.male_percent)} F=${percent(v.female_percent)} (n=${v.count})`):Object.entries(i.values).map(([k,v])=>`    ${k}: ${percent(v)}`))]), '', `${t.mean}: ${percent(a.mean_gap)}`, `${t.median}: ${percent(a.median_gap)}`, ...Object.entries(fields).map(([key,label])=>`${label}: ${percent(a[key])}`), '', ...groups.map(g => `${t.group}: ${g.category} | n=${g.count}\n${t.mean}: ${percent(g.mean_gap)} | ${fields.base_gap}: ${percent(g.base_gap)} | ${fields.variable_gap}: ${percent(g.variable_gap)}\n${fields.annual_base_gap}: ${percent(g.annual_base_gap)} | ${fields.annual_variable_gap}: ${percent(g.annual_variable_gap)}`), '', ...a.quartiles.map(q => `Q${q.quartile}: M=${percent(q.male_percent)} F=${percent(q.female_percent)}`), '', t.note, `Method: ${a.methodology}`, si?'Uradni nacionalni kanal in shema nista preverjena. Dokument ni potrdilo uradne oddaje.':'Nationaler Meldekanal und amtliches Schema sind nicht verifiziert. Dieses Dokument bestätigt keine amtliche Einreichung.', regulatory.source,...annex].join('\n');
 }
 // Prefix spreadsheet formula characters even inside quoted CSV cells.
 export function csvCell(value) {
@@ -52,13 +54,14 @@ export function reportCsv(company, snapshot) {
   const rows = [{ category: 'ALL', ...a }, ...(['internal','workers','authority'].includes(snapshot.audience || 'internal')?a.groups:[])];
   const records = [header, ...rows.map(g => [snapshot.prepared?'PREPARED_INTERNAL_UNVERIFIED':'DRAFT_UNVERIFIED',company.country,snapshot.reporting_year,snapshot.id,g.category,g.count,g.mean_gap,g.median_gap,g.base_gap,g.variable_gap,g.median_variable_gap,g.annual_mean_gap,g.annual_median_gap,g.annual_base_gap,g.annual_variable_gap,g.annual_median_variable_gap,g.male_variable_receivers,g.female_variable_receivers])];
   records.push([], ['quartile','count','male_percent','female_percent'], ...a.quartiles.map(q => [q.quartile,q.count,q.male_percent,q.female_percent]));
+  records.push([], ['art9_letter','reference','indicator','item','metric','value'], ...article9Rows(art9(company,snapshot,a)));
   if (workflowEntries(snapshot).length) records.push([],['review_field','value'],...workflowEntries(snapshot));
   return '\uFEFF' + records.map(row => row.map(csvCell).join(',')).join('\r\n');
 }
 export function reportData(company,snapshot) {
   const analysis=analyze(snapshot.rows),audience=snapshot.audience||'internal';
   const {groups,review_count,...summary}=analysis;
-  return {schema:'urn:equitensa:internal:report:v1',status:snapshot.prepared?'PREPARED_INTERNAL_UNVERIFIED':'DRAFT_UNVERIFIED',company:{name:company.name,country:company.country},reportingYear:snapshot.reporting_year,snapshotId:snapshot.id,rulesVersion:regulatory.version,source:regulatory.source,officialSubmission:false,methodology:analysis.methodology,summary,
+  return {schema:'urn:equitensa:internal:report:v1',status:snapshot.prepared?'PREPARED_INTERNAL_UNVERIFIED':'DRAFT_UNVERIFIED',company:{name:company.name,country:company.country},reportingYear:snapshot.reporting_year,snapshotId:snapshot.id,rulesVersion:regulatory.version,source:regulatory.source,officialSubmission:false,methodology:analysis.methodology,summary,article9:art9(company,snapshot,analysis),
     ...(['internal','workers','authority'].includes(audience)?{groups}:{}),audience,
     ...(audience==='internal'?{review:workflowEntries(snapshot)}:{}),
   };
@@ -68,6 +71,7 @@ export function reportXlsx(company,snapshot) {
   const data=reportData(company,snapshot),book=XLSX.utils.book_new();
   const append=(name,rows)=>XLSX.utils.book_append_sheet(book,XLSX.utils.aoa_to_sheet(rows),name);
   append('Report',[['field','value'],...Object.entries(data).filter(([key])=>!['summary','groups','review'].includes(key)).map(([key,value])=>[key,typeof value==='object'?JSON.stringify(value):value])]);
+  append('Article 9',[['letter','reference','indicator','item','metric','value'],...article9Rows(data.article9)]);
   append('Indicators',[['indicator','value'],...Object.entries(data.summary).filter(([key])=>!['quartiles','methodology'].includes(key))]);
   append('Quartiles',[['quartile','count','suppressed','male_percent','female_percent'],...data.summary.quartiles.map(q=>[q.quartile,q.count,q.suppressed,q.male_percent,q.female_percent])]);
   if(data.groups?.length){const columns=Object.keys(data.groups[0]);append('Categories',[columns,...data.groups.map(g=>columns.map(c=>g[c]))]);}
