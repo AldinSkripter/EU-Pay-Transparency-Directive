@@ -1,3 +1,4 @@
+import { obligation } from '../shared/plans.js';
 export const regulatory = {
   source:'https://eur-lex.europa.eu/eli/dir/2023/970/oj/eng',
   version:'EU-2023-970-v1',
@@ -17,8 +18,9 @@ export function reportingPlan(country,year,headcount,audience='internal') {
   const recipient=regulatory.recipients.find(r=>r.id===audience);
   if (!recipient || !regulatory.markets[country]) throw new Error('INVALID_AUDIENCE');
   const confirmed=Number.isInteger(headcount) && headcount>0;
-  const firstYear=confirmed ? headcount>=150 ? 2027 : headcount>=100 ? 2031 : null : null;
-  const frequency=firstYear ? headcount>=250 ? 1 : 3 : null;
+  const duty=confirmed ? obligation(headcount) : null;
+  const firstYear=duty?.reporting ? Number(duty.firstDue.slice(0,4)) : null;
+  const frequency=duty?.frequencyYears ?? null;
   const reportingYear=year+1;
   const due=firstYear && reportingYear>=firstYear && (reportingYear-firstYear)%frequency===0 ? `${reportingYear}-06-07` : null;
   return {rulesVersion:regulatory.version,source:regulatory.source,verifiedOn:regulatory.verifiedOn,country,referenceYear:year,headcount:confirmed?headcount:null,headcountConfirmed:confirmed,

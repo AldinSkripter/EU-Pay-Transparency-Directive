@@ -1,9 +1,6 @@
 import { createHmac, timingSafeEqual, randomUUID } from 'node:crypto';
-export const plans = [
-  {id:'prepare',name:'Prepare',monthly:199,annual:1990,limit:250},
-  {id:'growth',name:'Growth',monthly:399,annual:3990,limit:1000},
-  {id:'scale',name:'Scale',monthly:799,annual:7990,limit:2500},
-];
+export { plans } from '../shared/plans.js';
+import { plans } from '../shared/plans.js';
 export function subscriptionPlan(subscription, prices = {}) {
   const items=subscription?.items?.data;
   if (!Array.isArray(items) || items.length!==1 || items[0].quantity!==1) return null;

@@ -1,4 +1,5 @@
 import { createHmac } from 'node:crypto';
+import { obligation } from '../shared/plans.js';
 
 function numeric(value, field, { min = 0, max = 1e9 } = {}) {
   if (value === '' || value === null || value === undefined || typeof value === 'boolean') throw new Error(`INVALID_${field}`);
@@ -75,8 +76,6 @@ export function analyze(rows) {
   return { ...overall, groups, quartiles, review_count: groups.filter(g => g.review_required).length, methodology: 'annual-pay / declared-annual-paid-hours; unadjusted M/F; minimum subgroup 5; stable quartile ties; version 1' };
 }
 export function reportingSchedule(count) {
-  if (count >= 250) return { first_due: '2027-06-07', frequency_years: 1, reference_year: 2026 };
-  if (count >= 150) return { first_due: '2027-06-07', frequency_years: 3, reference_year: 2026 };
-  if (count >= 100) return { first_due: '2031-06-07', frequency_years: 3, reference_year: 2030 };
-  return { first_due: null, frequency_years: null, reference_year: null };
+  const duty = obligation(count);
+  return { first_due: duty?.firstDue ?? null, frequency_years: duty?.frequencyYears ?? null, reference_year: duty?.referenceYear ?? null };
 }

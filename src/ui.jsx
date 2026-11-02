@@ -17,7 +17,7 @@ export function Notice({children,tone='info'}) { return <div className={`notice 
 export function Tick({children}) { return <div className="tick"><Check size={16}/><span>{children}</span></div>; }
 export function percent(n) { return n===null || n===undefined?'—':`${n.toLocaleString('de-DE',{maximumFractionDigits:2})} %`; }
 export function download(content,name,type='text/csv;charset=utf-8') { const url=URL.createObjectURL(new Blob([content],{type}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000); }
-export const plans=[{id:'prepare',name:'Prepare',price:199,annual:1990,limit:250},{id:'growth',name:'Growth',price:399,annual:3990,limit:1000},{id:'scale',name:'Scale',price:799,annual:7990,limit:2500}];
+export {plans,annualSavingsPercent,recommendPlan,planRange,obligation,upcomingDeadlines} from '../shared/plans.js';
 export const template='internal_id,gender,job_title,worker_category,job_category_kv,base_annual,bonuses_annual,paid_hours_annual,hours_per_week\n001,F,Engineer,Engineering L3,,60000,3000,2080,40\n002,M,Engineer,Engineering L3,,63000,3000,2080,40\n';
 export const errorText=(error,L)=> {
   const importMessages = {

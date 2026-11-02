@@ -4,11 +4,11 @@
 
 | Paket | Mjesečno | Godišnje ukupno | Limit zaposlenih |
 |---|---:|---:|---:|
-| Prepare | €199 | €1.990 | 250 |
-| Growth | €399 | €3.990 | 1.000 |
-| Scale | €799 | €7.990 | 2.500 |
+| Prepare | €99 | €899 | 250 |
+| Growth | €199 | €1.799 | 1.000 |
+| Scale | €399 | €3.599 | 2.500 |
 
-Neto B2B cijene. Godišnja cijena štedi dvije mjesečne uplate. Svi uključuju CSV mapiranje, sedam EU grupa pokazatelja, klasifikaciju, provjere, potvrde i pripremljene radne izvještaje. Nacrt bez pretplate podržava do 250 zaposlenih. Direktni HRIS konektori nisu aktivni.
+Neto B2B cijene. Godišnja cijena štedi oko 24 % u odnosu na 12 mjesečnih uplata. Iznosi su definirani na jednom mjestu, [shared/plans.js](../shared/plans.js); Stripe cijene moraju imati točno te iznose. Svi uključuju CSV mapiranje, sedam EU grupa pokazatelja, klasifikaciju, provjere, potvrde i pripremljene radne izvještaje. Nacrt bez pretplate podržava do 250 zaposlenih. Direktni HRIS konektori nisu aktivni.
 
 ## Tok korisnika
 

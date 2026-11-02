@@ -40,9 +40,9 @@ Unijeti odgovarajući `sk_test_…` ili `sk_live_…`, `whsec_…` i šest aktiv
 
 | Paket | Mjesečno | Godišnje |
 | --- | ---: | ---: |
-| Prepare | €199 | €1.990 |
-| Growth | €399 | €3.990 |
-| Scale | €799 | €7.990 |
+| Prepare | €99 | €899 |
+| Growth | €199 | €1.799 |
+| Scale | €399 | €3.599 |
 
 Cijene trebaju biti recurring/per-unit/licensed, s periodom od jednog mjeseca ili godine i iznosom bez uključenog poreza. Stripe Tax obračun se mora konfigurirati u Stripe računu. Brojevi kartica obrađuju se kroz Stripe Checkout.
 
