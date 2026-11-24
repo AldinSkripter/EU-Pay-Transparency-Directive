@@ -55,6 +55,7 @@ export async function loginOwner(control,email,password,code) {
   const state=await control.read(),owner=state.owners.find(o=>o.email===String(email).trim().toLowerCase());
   const encoded=owner?.password_hash || '00000000000000000000000000000000:'+ '00'.repeat(64);
   if(!await verifyPassword(password,encoded) || !owner?.enabled)throw new Error('INVALID_OWNER_LOGIN');
+  if(owner.mfaSecret && !code)throw new Error('OWNER_LOGIN_MFA_REQUIRED');
   const step=owner.mfaSecret?verifyTotp(owner.mfaSecret,code):null;
   const backupHash=hashToken(String(code||''));
   const token=randomBytes(32).toString('hex');

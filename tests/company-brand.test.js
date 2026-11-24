@@ -1,0 +1,22 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {once} from 'node:events';
+import {randomUUID} from 'node:crypto';
+import {createApp} from '../server/app.js';
+import {MemoryStore} from '../server/store.js';
+import {verifyAll} from './helpers.js';
+test('company branding persists across modules, isolates tenants and rejects unsafe images',async t=>{
+ const store=new MemoryStore(),server=createApp({store,demo:true,secret:'a'.repeat(64)}).listen(0,'127.0.0.1');await once(server,'listening');t.after(()=>{server.closeAllConnections();server.close();});const origin=`http://127.0.0.1:${server.address().port}`;
+ const call=(cookie,path,body)=>fetch(origin+'/api'+path,{method:body===undefined?'GET':'POST',headers:{Origin:origin,...(cookie?{Cookie:cookie}:{}),...(body===undefined?{}:{'Content-Type':'application/json'})},...(body===undefined?{}:{body:JSON.stringify(body)})});
+ const register=async()=>{const r=await call(null,'/auth/register',{email:randomUUID()+'@example.com',password:'correct-horse-123',companyName:'Brand Test',country:'AT'});assert.equal(r.status,201);verifyAll(store);return r.headers.get('set-cookie').split(';')[0];};
+ const a=await register(),b=await register();
+ assert.equal((await call(null,'/company/brand')).status,401);
+ const logo='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+/l9sAAAAASUVORK5CYII=';
+ assert.equal((await call(a,'/company/brand',{displayName:'Studio',logo,companyId:'ignored'})).status,200);
+ assert.deepEqual((await (await call(a,'/company/brand')).json()).brand,{displayName:'Studio',logo});
+ assert.equal((await (await call(b,'/company/brand')).json()).brand.logo,'');
+ for(const invalid of ['data:image/svg+xml;base64,PHN2Zy8+','data:image/png;base64,YWJj','https://example.com/logo.png'])assert.equal((await call(a,'/company/brand',{displayName:'Studio',logo:invalid})).status,400);
+ assert.equal((await call(a,'/company/brand',{displayName:' ',logo:''})).status,400);
+ assert.equal((await call(a,'/company/brand',{displayName:'Studio',logo:''})).status,200);
+ assert.equal((await (await call(a,'/company/brand')).json()).brand.logo,'');
+});

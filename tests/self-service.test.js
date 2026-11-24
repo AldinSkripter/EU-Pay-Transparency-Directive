@@ -4,7 +4,7 @@ import { once } from 'node:events';
 import { createHmac } from 'node:crypto';
 import { createApp } from '../server/app.js';
 import { MemoryStore } from '../server/store.js';
-import { verifyAll } from './helpers.js';
+import { verifyAll, documentedEvaluation, completedRemediation } from './helpers.js';
 import { verifyStripeEvent, subscriptionPlan } from '../server/billing.js';
 import { readiness, validateWorkflow } from '../server/workflow.js';
 import { reportingPlan } from '../server/regulatory.js';
@@ -23,13 +23,13 @@ test('self service purchase, mapped import, approvals, audience exports and snap
   assert.equal((await request('/import',a,{csv,mapping,year:2026})).status,201);
   const analysis=await (await request('/analysis',a)).json();assert.equal(analysis.analysis.review_count,1);
   assert.equal((await request('/reports/pdf?prepared=true',a)).status,402);
-  const checkout=await request('/billing/checkout',a,{plan:'prepare',interval:'annual',accepted:true});assert.equal(checkout.status,201);
+  const checkout=await request('/billing/checkout',a,{plan:'prepare',interval:'annual',accepted:true,contractVersion:"pay-2026-11-11-12m"});assert.equal(checkout.status,201);
   const order=(await checkout.json()).order;
   assert.equal((await request('/billing/sandbox-confirm',b,{orderId:order.id})).status,400);
   assert.equal((await request('/billing/sandbox-confirm',a,{orderId:order.id})).status,200);
   assert.equal((await request('/billing/sandbox-confirm',a,{orderId:order.id})).status,200);
   assert.equal((await request('/reports/pdf?prepared=true',a)).status,409);
-  const workflow={snapshotId:analysis.snapshot.id,profile:{legalName:'Test GmbH',headcount:180,payrollComplete:true},classification:{'Equal work':{skills:'Degree and competence evidence',effort:'Mental effort evidence',responsibility:'System risk',conditions:'Same work environment'}},reviews:{'Equal work':{explanation:'Differences reviewed; pay correction needed',action:'Salary adjustment',owner:'HR lead',due:'2027-06-01',justified:false}},approval:{manager:'Managing director',representatives:'Methodology discussed with works council 2027-01-10',confirmed:true,consulted:true}};
+  const workflow={jobEvaluation:documentedEvaluation(['Equal work']),criteriaAgreement:{status:'agreed'},snapshotId:analysis.snapshot.id,profile:{legalName:'Test GmbH',headcount:180,payrollComplete:true},classification:{'Equal work':{skills:'Degree and competence evidence',effort:'Mental effort evidence',responsibility:'System risk',conditions:'Same work environment'}},reviews:{'Equal work':{explanation:'Differences reviewed; pay correction needed',action:'Salary adjustment',owner:'HR lead',due:'2027-06-01',justified:false}},approval:{manager:'Managing director',representatives:'Methodology discussed with works council 2027-01-10',confirmed:true,consulted:true}};
   const saved=await request('/workflow',a,{workflow,year:2026});assert.equal(saved.status,200);assert.equal((await saved.json()).readiness.ready,true);
   const route=await (await request('/reporting-plan?year=2026&audience=authority',a)).json();
   assert.equal(route.euMinimum.dueForReferenceYear,'2027-06-07');assert.equal(route.recipient.indicators,'a-g');
@@ -100,11 +100,11 @@ test('Stripe signature, replay window, idempotency and out-of-order lifecycle ev
 });
 
 test('joint assessment combines the gap, justification, actual submission and six months',()=> {
-  const analysis={count:180,groups:[{category:'A',review_required:true}]},snapshot={id:'s'};
+  const analysis={count:180,groups:[{category:'A',review_required:true}]},snapshot={id:'s',reporting_year:2026};
   const w={snapshotId:'s',profile:{},classification:{},reviews:{A:{justified:false,remedied:false}},approval:{},reportingDate:'2020-01-01'};
   assert.equal(readiness(w,analysis,snapshot).assessments[0].jointAssessmentRequired,true);
   w.reviews.A.justified=true;assert.equal(readiness(w,analysis,snapshot).assessments[0].jointAssessmentRequired,false);
-  w.reviews.A.justified=false;w.reviews.A.remedied=true;assert.equal(readiness(w,analysis,snapshot).assessments[0].jointAssessmentRequired,false);
+  w.reviews.A.justified=false;w.reviews.A.remedied=true;w.reviews.A.proof=completedRemediation('s');assert.equal(readiness(w,analysis,snapshot).assessments[0].jointAssessmentRequired,false);
   w.reviews.A.remedied=false;w.reportingDate='';assert.equal(readiness(w,analysis,snapshot).assessments[0].jointAssessmentRequired,false);
   w.reportingDate='2020-01-01';w.profile.headcount=99;assert.equal(readiness(w,analysis,snapshot).assessments[0].jointAssessmentRequired,false);
   w.profile.headcount=120;assert.equal(readiness(w,analysis,snapshot).assessments[0].jointAssessmentRequired,false);

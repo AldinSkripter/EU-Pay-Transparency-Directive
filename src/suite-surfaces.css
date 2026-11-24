@@ -1,0 +1,57 @@
+/* Shared application surfaces. Document canvases deliberately retain customer styling. */
+:root{--suite-ink:#30223f;--suite-muted:#6d5b7d;--suite-line:#e4dbea;--suite-accent:#7451f8;--suite-radius:18px}
+:is(.workspace,.finance-shell) main :is(.panel,.finance-card,.fx-editor,.fx-activity,.security-card){border:1px solid var(--suite-line);border-radius:var(--suite-radius);background:#fff;box-shadow:0 8px 28px #35204706}
+:is(.workspace,.finance-shell) main :is(.panel-title,.fx-editor>header){padding-bottom:18px;border-bottom:1px solid #eee7f4;margin-bottom:22px}
+:is(.workspace,.finance-shell) main :is(.panel-title h2,.panel-title h3,.finance-card h2,.fx-page-intro h2,.fx-editor h3){color:var(--suite-ink);font-weight:650;letter-spacing:-.6px}
+:is(.workspace,.finance-shell) main .field>span{font-size:13px;font-weight:550;color:#554064;margin-bottom:8px;display:block}
+:is(.workspace,.finance-shell) main .field :is(input,select,textarea){border:1px solid #d9cde5;border-radius:10px;background:#fcfaff;color:#30223f;font-size:14px;line-height:1.5;min-height:44px;padding:11px 13px;transition:border-color .15s,box-shadow .15s;width:100%;box-sizing:border-box}
+:is(.workspace,.finance-shell) main .field textarea{min-height:110px;resize:vertical}
+:is(.workspace,.finance-shell) main .field input[type=color]{padding:5px;height:44px}
+:is(.workspace,.finance-shell) main .field :is(input,textarea)::placeholder{color:#8c7a99}
+:is(.workspace,.finance-shell) main .field :is(input,select,textarea):focus{outline:none;border-color:#9771e9;box-shadow:0 0 0 3px #7451f81c;background:#fff}
+:is(.workspace,.finance-shell) main .field small{font-size:12px;color:var(--suite-muted);line-height:1.7}
+:is(.workspace,.finance-shell) main .check-field{font-size:13px;line-height:1.7;color:#604c71;align-items:flex-start;gap:10px}
+:is(.workspace,.finance-shell) main input[type=checkbox]{accent-color:var(--suite-accent);width:17px;height:17px;flex-shrink:0;margin-top:3px}
+:is(.workspace,.finance-shell) main .btn{min-height:44px;border-radius:11px;font-size:13px;font-weight:600;padding:11px 18px;gap:9px;transition:background .15s,box-shadow .15s,transform .15s}
+:is(.workspace,.finance-shell) main .btn-primary{background:linear-gradient(110deg,#8057fa,#6841e8);color:#fff;border:1px solid #7451f8;box-shadow:0 5px 14px #7451f81c}
+:is(.workspace,.finance-shell) main .btn-primary:hover:not(:disabled){box-shadow:0 7px 22px #7451f838;transform:translateY(-1px)}
+:is(.workspace,.finance-shell) main .btn-secondary{background:#fff;border:1px solid #d8c9e7;color:#624379;box-shadow:none}
+:is(.workspace,.finance-shell) main button:disabled{cursor:not-allowed}
+:is(.workspace,.finance-shell) main .notice{border-radius:13px;padding:16px 18px;border:1px solid #ddcef0;background:#f5effd;color:#614777;font-size:13px;line-height:1.8}
+:is(.workspace,.finance-shell) main .notice.error{background:#fff1f4;border-color:#edbdcc;color:#96374e}
+:is(.workspace,.finance-shell) main .notice.success{background:#eef9f4;border-color:#bbdfcf;color:#27674e}
+.workspace main table,.finance-shell main table:not(.fd-sheet table){width:100%;border-collapse:separate;border-spacing:0;font-size:13px}
+.workspace main th,.finance-shell main table:not(.fd-sheet table) th{padding:14px 16px;background:#f5f0fa;color:#725881;font-size:11px;font-weight:650;letter-spacing:.035em;text-align:left;border-bottom:1px solid #ddd0e8;white-space:nowrap}
+.workspace main td,.finance-shell main table:not(.fd-sheet table) td{padding:15px 16px;border-bottom:1px solid #eee7f3;color:#554064;font-size:13px;line-height:1.6;vertical-align:middle}
+.workspace main tbody tr:hover,.finance-shell main table:not(.fd-sheet table) tbody tr:hover{background:#faf7fe}
+:is(.workspace,.finance-shell) main :is(.table-wrap,.table-scroll){overflow:auto;border:1px solid #e3d8ec;border-radius:12px}
+.workspace main :is(.builder-step,.step-heading){border-radius:16px}
+.workspace main .builder-steps{gap:8px;padding:12px;border:1px solid #e3d8ec;background:#fff;border-radius:16px}
+.workspace main .builder-steps button{border-radius:10px;font-size:12px;min-height:43px;color:#6b527c}
+.workspace main .builder-steps button.active{background:#7451f8;color:white}
+.workspace main :is(.form-panel,.review-form){padding:28px}
+.workspace main :is(.tag,.status-tag){font-size:11px;line-height:1.5;padding:5px 9px;border-radius:7px}
+.finance-shell main :is(.fx-contact-grid,.fx-product-grid,.fx-export-grid){gap:20px}
+.finance-shell main :is(.fx-contact-grid,.fx-product-grid,.fx-export-grid)>article{border:1px solid var(--suite-line);border-radius:18px;background:linear-gradient(145deg,#fff,#fcfaff);padding:25px;box-shadow:0 6px 24px #35204705}
+.finance-shell main :is(.fx-contact-grid h3,.fx-product-grid h3,.fx-export-grid h3,.fx-empty h3){font-size:19px;color:#402c50;font-weight:600;letter-spacing:-.4px}
+.finance-shell main :is(.fx-contact-grid>article>p,.fx-export-grid p,.fx-empty p,.finance-card p,.fx-page-intro p){color:#6d5b7d;font-size:13px;line-height:1.8}
+.finance-shell main :is(.fx-sku,.fx-count,.fx-footnote,.fx-contact-stats small,.fx-product-price>span,.fx-expense-list small,.fx-expense-list p,.fx-activity time){color:#786286;font-size:12px;line-height:1.7}
+.finance-shell main :is(.fx-toolbar select,.fx-export-year select){border:1px solid #d9cde5;border-radius:10px;color:#5a426c;background:#fff;font-size:13px}
+.finance-shell main .fx-search{border:1px solid #d9cde5;border-radius:11px;min-height:44px;box-sizing:border-box;color:#85679b}
+.finance-shell main .fx-search input{font-size:14px;color:#382744}
+.finance-shell main .fx-search input::placeholder{color:#8b7699}
+.finance-shell main .fx-empty{border:1px dashed #cbb9df;border-radius:20px;background:radial-gradient(ellipse at top,#f3eafb,transparent 70%),#fff;padding:48px 26px}
+.finance-shell main .fx-doc-main h3{font-size:16px;color:#422d51;font-weight:600}
+.finance-shell main :is(.fx-doc-main small,.fx-doc-bottom>span){font-size:12px;color:#786287}
+.finance-shell main :is(.fx-doc-bottom button,.fx-doc-bottom a,.fx-expense-list button,.fx-export-grid a){font-size:12px;color:#6942a1;font-weight:550}
+.finance-shell main .fx-expense-list>article{border:1px solid #e4dbea;border-radius:14px;margin-bottom:10px;background:white;padding:20px}
+.finance-shell main .fx-expense-list h3{font-size:15px;color:#483156;font-weight:600}
+.finance-shell main .fx-expense-list strong{color:#382243}
+.finance-shell main .fx-category{font-size:11px;color:#73518c;background:#f1e8fa;border-radius:7px}
+.finance-shell main .fx-activity>div{font-size:12px;color:#624a75;padding:15px 0}
+.finance-shell main .fx-summary-strip{border:1px solid #e1d5ec;border-radius:17px;background:#fff;overflow:hidden}
+.finance-shell main .fx-summary-strip>article{padding:23px}
+.finance-shell main .fx-summary-strip>article>span{font-size:12px;color:#765c88}
+.finance-shell main .fx-summary-strip strong{color:#3d284b;font-size:29px}
+@media(max-width:680px){:is(.workspace,.finance-shell) main :is(.form-panel,.review-form,.finance-card,.fx-editor){padding:20px}.workspace main td,.workspace main th,.finance-shell main table:not(.fd-sheet table) :is(td,th){padding:12px}.finance-shell main .fx-summary-strip>article{padding:17px}.finance-shell main .fx-summary-strip strong{font-size:25px}}
+@media(prefers-reduced-motion:reduce){:is(.workspace,.finance-shell) main .btn,:is(.workspace,.finance-shell) main .field :is(input,select,textarea){transition:none;transform:none}}

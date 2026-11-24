@@ -1,6 +1,8 @@
 import React from 'react';
+import {preparePayFile} from './pay-upload';
 import { ChartNoAxesCombined, ArrowRight, Check, LoaderCircle } from 'lucide-react';
 export async function api(path, body) {
+  if(body?.file?.uploadId&&/^\/(import(?:\/|$)|payroll\/(?:preview|stage))/.test(path))await preparePayFile(body);
   const response=await fetch(`/api${path}`,body===undefined?{}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
   const data=await response.json();
   if (!response.ok) throw Object.assign(new Error(data.error),data);
@@ -20,8 +22,41 @@ export function download(content,name,type='text/csv;charset=utf-8') { const url
 export {plans,annualSavingsPercent,recommendPlan,planRange,obligation,upcomingDeadlines} from '../shared/plans.js';
 export const template='internal_id,gender,job_title,worker_category,job_category_kv,base_annual,bonuses_annual,paid_hours_annual,hours_per_week\n001,F,Engineer,Engineering L3,,60000,3000,2080,40\n002,M,Engineer,Engineering L3,,63000,3000,2080,40\n';
 export const errorText=(error,L)=> {
+  if(error.message==='CONTRACT_ACCEPTANCE_REQUIRED')return L('Bitte die Vertragsbedingungen mit 12 Monaten Mindestlaufzeit bestätigen.','Potrdite pogodbene pogoje z najmanj 12 meseci trajanja.');
+  if(['CONTRACT_NOT_AVAILABLE','CONTRACT_DATES_UNAVAILABLE'].includes(error.message))return L('Der Kündigungstermin ist noch nicht verfügbar. Bitte den Support kontaktieren.','Datum odpovedi še ni na voljo. Obrnite se na podporo.');
+  if(error.message==='STRIPE_PRICE_MISMATCH')return L('Die Zahlungsanbindung muss auf die aktuellen Preise aktualisiert werden. Bitte den Support kontaktieren.','Plačilno povezavo je treba posodobiti na trenutne cene. Obrnite se na podporo.');
+  if (error.message === 'EMAIL_DELIVERY_FAILED') return L('Die E-Mail konnte nicht versendet werden. Bitte später erneut versuchen oder den Support kontaktieren.', 'E-pošte ni bilo mogoče poslati. Poskusite pozneje ali se obrnite na podporo.');
+  if (['RETENTION_POLICY_REQUIRED','INVALID_HOLD'].includes(error.message)) return L('Aufbewahrungsrichtlinie vollständig ausfüllen: Zweck, Rechtsgrundlage, Monate, Verantwortliche, Prüfdatum und Backup-Verfahren. Sperren benötigen Jahr und Grund.', 'Izpolnite politiko hrambe: namen, pravna podlaga, meseci, odgovorna oseba, datum pregleda in postopek kopij. Zadržanja zahtevajo leto in razlog.');
+  if (error.message === 'LEGAL_HOLD_ACTIVE') return L('Eine gespeicherte Aufbewahrungssperre verhindert die Löschung.', 'Shranjeno zadržanje zaradi obveznosti hrambe preprečuje brisanje.');
+  if (error.message === 'RETENTION_NOT_DUE') return L('Die gespeicherte Aufbewahrungsfrist ist noch nicht abgelaufen. Eine vorzeitige Löschung benötigt eine begründete, gesondert geprüfte Ausnahme.', 'Shranjeni rok hrambe še ni potekel. Predčasno brisanje zahteva utemeljeno, posebej pregledano izjemo.');
+  if (error.message === 'DELETION_PREVIEW_CHANGED') return L('Daten oder Richtlinie haben sich seit der Vorschau geändert. Bitte neu laden und erneut prüfen.', 'Podatki ali politika so se od predogleda spremenili. Ponovno naložite in preglejte.');
+  if (['INVALID_CONFIRMATION','INVALID_RECEIPT'].includes(error.message)) return L('Bestätigung oder Löschbeleg unvollständig. Bitte Angaben prüfen.', 'Potrditev ali dokazilo brisanja ni popolno. Preverite vnose.');
+  if (['CONTROL_EVIDENCE_REQUIRED','INVALID_CONTROL'].includes(error.message)) return L('Für erfasste Nachweise sind verantwortliche Person, gültiges Prüfdatum und Belege erforderlich. Nur öffentliche Aufträge können mit Begründung als nicht anwendbar markiert werden.', 'Za vnesena dokazila so potrebni odgovorna oseba, veljaven datum pregleda in dokazila. Le javna naročila lahko z utemeljitvijo označite kot neuporabna.');
+  if (error.message === 'REMEDIATION_PROOF_REQUIRED') return L('Für „behoben“ fehlen gültige Umsetzungs- und Wirksamkeitsnachweise zum aktuellen Datenstand. Bitte die Belege ergänzen oder die Markierung entfernen.', 'Za oznako »odpravljeno« manjkajo veljavna dokazila o izvedbi in učinkovitosti za trenutni posnetek. Dopolnite dokazila ali odstranite oznako.');
   const importMessages = {
-    PAY_CODE_CLASSIFICATION_REQUIRED:L('Diese Datei enthält Entgeltarten. Zuerst klassifizierte Jahresgrund- und variable Beträge exportieren. Der Transaktionsimport ist noch nicht verfügbar.','Datoteka vsebuje obračunske šifre. Najprej izvozite razvrščene letne osnovne in variabilne zneske. Transakcijski uvoz še ni na voljo.'),
+    HR_DATA_REQUIRED:L('Noch keine HR-Stammdaten vorhanden. Zuerst die Beschäftigten mit Personalnummer, Geschlecht, Tätigkeit und Kategorie importieren.','Podatki o zaposlenih še niso uvoženi. Najprej uvozite zaposlene s šifro, spolom, delovnim mestom in kategorijo.'),
+    MISSING_PAYROLL_PERIOD_OR_HOURS:L('Für einen Beschäftigungsmonat fehlen Buchungen oder bezahlte Stunden. Monatsdaten ergänzen.','Za mesec zaposlitve manjkajo transakcije ali plačane ure. Dopolnite mesečne podatke.'),
+    PAY_CODE_CLASSIFICATION_REQUIRED:L('Entgeltart noch nicht bestätigt. Als Grundvergütung, variabel oder mit Begründung ausgeschlossen zuordnen.','Obračunska šifra še ni potrjena. Razvrstite jo kot osnovno, variabilno ali z obrazložitvijo izključeno plačilo.'),
+    UNMATCHED_PAYROLL_EMPLOYEE:L('Die Personalnummer aus der Abrechnung hat keinen passenden HR-Datensatz. Zuordnung oder HR-Datei prüfen.','Šifra zaposlenega v obračunu nima ustreznega kadrovskega zapisa. Preverite preslikavo ali kadrovsko datoteko.'),
+    CONFLICTING_PERIOD_HOURS:L('Für denselben Beschäftigten und Monat wurden unterschiedliche bezahlte Stunden geliefert. Originaldaten prüfen und korrigieren.','Za istega zaposlenega in mesec so navedene različne plačane ure. Preverite in popravite izvirne podatke.'),
+    INVALID_CORRECTION_REFERENCE:L('Korrektur passt nicht zur Originalbuchung: Person, Monat, Entgeltart und Referenz prüfen.','Popravek ne ustreza izvirni transakciji: preverite zaposlenega, mesec, šifro in referenco.'),
+    PAYROLL_OUTSIDE_EMPLOYMENT:L('Eine Buchung liegt außerhalb der angegebenen Beschäftigungsmonate. Beschäftigungszeitraum und Abrechnung prüfen.','Transakcija je zunaj navedenih mesecev zaposlitve. Preverite obdobje zaposlitve in obračun.'),
+    PAYROLL_TRANSACTION_IMPORT_REQUIRED:L('Diese Datei enthält monatliche Buchungen. Bitte unter „HR & Monatsabrechnungen“ prüfen und übernehmen.','Datoteka vsebuje mesečne transakcije. Preverite in prevzemite jih v razdelku »HR in mesečni obračuni«.'),
+    IMPORT_UPLOAD_CORRUPTED:L('Die gespeicherten Daten konnten nicht vollständig geprüft werden. Keine Teilübernahme: Upload löschen und die Originaldatei erneut hochladen.','Shranjeni podatki niso prestali celotnega preverjanja. Brez delnega prevzema: izbrišite nalaganje in ponovno naložite izvirno datoteko.'),
+    IMPORT_UPLOAD_EXPIRED:L('Der temporäre Upload ist nach 24 Stunden abgelaufen. Bitte die Datei erneut auswählen.','Začasno nalaganje je po 24 urah poteklo. Ponovno izberite datoteko.'),
+    PAYROLL_VERSION_CONFLICT:L('Der Arbeitsstand wurde inzwischen geändert. Neu laden und die Übernahme erneut prüfen.','Delovni podatki so se medtem spremenili. Ponovno naložite in preverite prevzem.'),
+    PAYROLL_TOTAL_OVERFLOW:L('Die Summe kann nicht mehr centgenau berechnet werden. Beträge und Dezimalformat prüfen; keine Freigabe möglich.','Vsote ni več mogoče natančno izračunati v centih. Preverite zneske in decimalno obliko; potrditev ni mogoča.'),
+    PAYROLL_EMPLOYEE_CAPACITY:L('Dieser Arbeitsbereich unterstützt höchstens 10.000 Beschäftigte; der gebuchte Tarif kann darunter liegen. Support für größere Bestände kontaktieren.','Ta delovni prostor podpira največ 10.000 zaposlenih; zakupljeni paket lahko določa manj. Za večje zbirke se obrnite na podporo.'),
+    PAYROLL_CODE_CAPACITY:L('Zu viele unterschiedliche Entgeltarten. Zuordnung prüfen oder den Support kontaktieren.','Preveč različnih obračunskih šifer. Preverite preslikavo ali se obrnite na podporo.'),
+    IMPORT_UPLOAD_SIZE:L('Maximal 1 GB pro Upload. Bitte eine kleinere Datei oder mehrere Monatsdateien verwenden.','Največ 1 GB na datoteko. Uporabite manjšo datoteko ali več mesečnih datotek.'),
+    IMPORT_UPLOAD_QUOTA:L('Temporärer Speicher belegt. Alte Uploads löschen oder später erneut versuchen (maximal 2 GB pro Firma).','Začasni prostor je zaseden. Izbrišite stare datoteke ali poskusite pozneje (največ 2 GB na podjetje).'),
+    IMPORT_STORAGE_FULL:L('Nicht genügend Serverspeicher. Keine Daten übernommen; bitte Support kontaktieren.','Na strežniku ni dovolj prostora. Podatki niso bili prevzeti; obrnite se na podporo.'),
+    IMPORT_CHUNK_CONFLICT:L('Datei stimmt nicht mit dem begonnenen Upload überein. Upload löschen und Datei neu auswählen.','Datoteka se ne ujema z začetim nalaganjem. Izbrišite nalaganje in ponovno izberite datoteko.'),
+    IMPORT_UPLOAD_NOT_FOUND:L('Upload wurde gelöscht oder ist abgelaufen. Datei erneut auswählen.','Nalaganje je izbrisano ali poteklo. Ponovno izberite datoteko.'),
+    IMPORT_JOB_INTERRUPTED:L('Verarbeitung unterbrochen. Vorschau erneut starten; Daten wurden nicht übernommen.','Obdelava je bila prekinjena. Ponovno zaženite predogled; podatki niso bili prevzeti.'),
+    IMPORT_RESULT_TOO_LARGE:L('Die entpackten Tabellendaten überschreiten 128 MB. Bitte in Monatsdateien aufteilen. Keine Zeilen übernommen.','Razpakirani tabelarični podatki presegajo 128 MB. Razdelite jih po mesecih. Nobena vrstica ni bila prevzeta.'),
+    LARGE_FORMAT_NEEDS_CONVERSION:L('Große Altformate bitte als CSV oder XLSX mit reinen Werten exportieren.','Velike datoteke starejših oblik izvozite kot CSV ali XLSX samo z vrednostmi.'),
+    IMPORT_DELIMITER_REQUIRED:L('Trennzeichen nicht eindeutig. Bitte als CSV mit einheitlichem Semikolon exportieren.','Ločilo ni enolično. Izvozite CSV z enotnim podpičjem.'),
     IMPORT_CONFIRMATION_REQUIRED:L('Bitte die Zuordnung und den Jahresbezug bestätigen.','Potrdite preslikavo in letno obdobje.'),
     IMPORT_SELECTION_REQUIRED:L('Bitte Arbeitsblatt oder XML-Datensatzpfad auswählen.','Izberite delovni list ali pot do zapisov XML.'),
     IMPORT_BUSY:L('Die Importverarbeitung ist ausgelastet. Bitte kurz warten und erneut versuchen.','Obdelava uvozov je zasedena. Počakajte in poskusite znova.'),
@@ -36,7 +71,7 @@ export const errorText=(error,L)=> {
     XML_RECORDS_NOT_FOUND:L('Keine eindeutigen Datensätze im XML gefunden.','V XML ni bilo mogoče najti ustreznih zapisov.'),
     XML_LIMIT_EXCEEDED:L('XML überschreitet die erlaubte Tiefe oder Anzahl Elemente.','XML presega dovoljeno globino ali število elementov.'),
     INVALID_HEADERS:L('Spaltenüberschriften müssen eindeutig und ausgefüllt sein.','Naslovi stolpcev morajo biti enolični in izpolnjeni.'),
-    INVALID_ROW_COUNT:L('Bitte zwischen 1 und 10.000 Datensätzen importieren.','Uvozite od 1 do 10.000 zapisov.'),
+    INVALID_ROW_COUNT:L('Zeilenlimit: Jahres-/HR-Daten 10.000; monatliche Transaktionen werden blockweise verarbeitet (CSV/JSON/XML/XLSX/ODS). Keine Teilübernahme.','Omejitev: letni/HR podatki 10.000; mesečne transakcije se obdelujejo po blokih (CSV/JSON/XML/XLSX/ODS). Brez delnega prevzema.'),
     INVALID_COLUMNS:L('Ungültige Spaltenstruktur oder mehr als 200 Spalten.','Neveljavna struktura ali več kot 200 stolpcev.'),
     IMPORT_COUNTRY_MISMATCH:L('Das Land in der Datei stimmt nicht mit dem Berichtsland der Firma überein.','Država v datoteki se ne ujema z državo poročanja podjetja.'),
     IMPORT_CURRENCY_UNSUPPORTED:L('Die Datei muss durchgehend EUR enthalten. Es erfolgt keine automatische Umrechnung.','Datoteka mora vsebovati EUR v vseh vrsticah. Samodejne pretvorbe ni.'),
@@ -51,12 +86,16 @@ export const errorText=(error,L)=> {
     INVALID_HEADER_ROW:L('Die Überschriftenzeile liegt außerhalb der Datei. Bitte die Zeilennummer prüfen.','Vrstica z naslovi je zunaj datoteke. Preverite številko vrstice.'),
     INVALID_CSV:L('Die Datei konnte nicht als Tabelle gelesen werden. Prüfen Sie Trennzeichen, Überschriftenzeile und Kodierung.','Datoteke ni bilo mogoče prebrati kot tabele. Preverite ločilo, vrstico z naslovi in kodiranje.'),
     INVALID_ENCODING:L('Diese Textkodierung wird nicht unterstützt.','To kodiranje besedila ni podprto.'),
-    PAYLOAD_TOO_LARGE:L('Die Datei ist zu groß (Grenze 4 MB, in ZIP-Archiven 8 MB entpackt).','Datoteka je prevelika (omejitev 4 MB, v arhivu ZIP 8 MB po razpakiranju).'),
+    PAYLOAD_TOO_LARGE:L('Die Datei ist zu groß (Grenze 20 MB je Datei; Archive maximal 64 MB entpackt).','Datoteka je prevelika (omejitev 20 MB na datoteko; arhivi do 64 MB po razpakiranju).'),
     UTF8_REQUIRED:L('Bitte die Datei als UTF-8 exportieren.','Izvozite datoteko v kodiranju UTF-8.'),
     INVALID_FIXES:L('Eine Korrektur passt nicht zur Datei. Bitte zurücksetzen und erneut wählen.','Popravek ne ustreza datoteki. Ponastavite in izberite znova.'),
     INVALID_MAPPING:L('Jedes Pflichtfeld einer eigenen vorhandenen Spalte zuordnen.','Vsako obvezno polje povežite z lastnim obstoječim stolpcem.'),
   };
   if (importMessages[error.message]) return importMessages[error.message];
+  if (error.message === 'NATIONAL_DATA_INCOMPLETE') return L('Nationale Zusatzangaben fehlen oder sind ungültig. Prüfen Sie Pflichtfelder, Bestätigungen und bei CSV jede Personalnummer, Entgeltsumme und Beschäftigungsanteile. Bei neuen Jahresdaten erneut bestätigen.', 'Nacionalni dodatni podatki manjkajo ali niso veljavni. Preverite obvezna polja, potrditve, šifre zaposlenih, vsote plač in deleže zaposlitve. Po spremembi letnih podatkov potrdite znova.');
+  if (error.message === 'NATIONAL_TEMPLATE_UNVERIFIED') return L('Für dieses Land ist keine bestätigte nationale Vorlage hinterlegt. Der EU-Bericht ist separat verfügbar.', 'Za to državo ni potrjene nacionalne predloge. Poročilo EU je na voljo ločeno.');
+  if (error.message === 'INVALID_ASSESSMENT_INPUT') return L('Rückkehrangaben prüfen: ganze Personenzahlen, höchstens die Beschäftigtenzahl je Geschlecht; Begünstigte dürfen relevante Rückkehrende nicht überschreiten.', 'Preverite podatke o vrnitvah: cela števila oseb, največ število zaposlenih po spolu; prejemnikov izboljšanja ne sme biti več kot upravičenih povratnikov.');
+  if (error.message === 'ASSESSMENT_INCOMPLETE') return L('Pflichtangaben aus Artikel 10 fehlen. Bitte Gründe, Maßnahmen, Rückkehranteile, frühere Maßnahmen und Zusammenarbeit im Schritt „Erklären & handeln“ vervollständigen.', 'Manjkajo obvezni podatki iz člena 10. V koraku »Pojasnila in ukrepi« dopolnite razloge, ukrepe, deleže po vrnitvi, prejšnje ukrepe in sodelovanje.');
   if(error.message==='COMPANY_SUSPENDED')return L('Der Zugang Ihrer Firma ist vorübergehend gesperrt. Bitte kontaktieren Sie Equitensa.','Dostop vašega podjetja je začasno blokiran. Obrnite se na Equitensa.');
   if(error.message==='SUBSCRIPTION_ALREADY_EXISTS')return L('Sie haben bereits eine Stripe-Bestellung. Verwalten Sie Ihr Paket unter „Paket & Abrechnung“.','Naročilo Stripe že obstaja. Paket upravljajte v razdelku »Paket in plačila«.');
   const accountMessages={

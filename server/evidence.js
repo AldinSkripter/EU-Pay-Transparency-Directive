@@ -1,6 +1,7 @@
 import { obligation } from '../shared/plans.js';
 import { analyze } from './pay.js';
 import { readiness } from './workflow.js';
+import { evaluationCompleteness, remediationComplete } from './employer-input.js';
 import { reportLanguage, countryNames } from './report-i18n.js';
 import { requestState, summarize, renderDocument, mimeFor } from './worker-rights.js';
 
@@ -13,7 +14,7 @@ const text = {
     title: 'Nachweis der Umsetzung der Transparenzpflichten', subtitle: 'Richtlinie (EU) 2023/970 · Artikel 4, 5, 6, 7, 9, 10 · Beweislast: Artikel 18 Absatz 2',
     draft: 'Zusammenstellung der in Equitensa erfassten Angaben. Keine Rechtsberatung und keine behördliche Bestätigung.',
     intro: 'Wenn ein Arbeitgeber die Pflichten aus den Artikeln 5, 6, 7, 9 und 10 nicht umgesetzt hat, muss er im Streitfall beweisen, dass keine Entgeltdiskriminierung vorlag (Art. 18 Abs. 2). Diese Übersicht hält fest, was erfasst wurde.',
-    head: ['Pflicht', 'Stand', 'Nachweis'], done: 'Erfüllt', partial: 'Teilweise', open: 'Offen', voluntary: 'Freiwillig',
+    head: ['Pflicht', 'Stand', 'Nachweis'], done: 'Dokumentiert', partial: 'Teilweise', open: 'Offen', voluntary: 'Freiwillig',
     company: 'Unternehmen', country: 'Land', year: 'Bezugsjahr', headcount: 'Beschäftigte (bestätigt)', generated: 'Erstellt am',
     r4: 'Art. 4 Abs. 4 · Kriterien für gleichwertige Arbeit', r5: 'Art. 5 · Entgeltangaben vor der Einstellung', r6: 'Art. 6 · Kriterien der Entgeltfestlegung', r7a: 'Art. 7 Abs. 3 · Jährliche Information der Beschäftigten', r7b: 'Art. 7 und Art. 9 Abs. 10 · Anfragen und Klarstellungen', r8: 'Art. 8 · Barrierefreie Information', r9: 'Art. 9 · Bericht über das Entgeltgefälle', r10: 'Art. 10 · Gemeinsame Entgeltbewertung',
     e4: (n, total, agreement) => `Kriterien (Fähigkeiten, Belastung, Verantwortung, Arbeitsbedingungen) dokumentiert für ${n} von ${total} Kategorien. Vereinbarung mit Arbeitnehmervertretern: ${agreement}.`,
@@ -31,7 +32,7 @@ const text = {
     title: 'Dokazilo o izvajanju obveznosti preglednosti', subtitle: 'Direktiva (EU) 2023/970 · členi 4, 5, 6, 7, 9, 10 · dokazno breme: člen 18(2)',
     draft: 'Povzetek podatkov, vnesenih v Equitensa. Ni pravno svetovanje in ni potrditev organa.',
     intro: 'Če delodajalec ni izvedel obveznosti iz členov 5, 6, 7, 9 in 10, mora v sporu dokazati, da ni bilo diskriminacije pri plačilu (člen 18(2)). Ta pregled beleži, kaj je bilo vneseno.',
-    head: ['Obveznost', 'Stanje', 'Dokaz'], done: 'Izpolnjeno', partial: 'Delno', open: 'Odprto', voluntary: 'Prostovoljno',
+    head: ['Obveznost', 'Stanje', 'Dokaz'], done: 'Dokumentirano', partial: 'Delno', open: 'Odprto', voluntary: 'Prostovoljno',
     company: 'Podjetje', country: 'Država', year: 'Referenčno leto', headcount: 'Zaposleni (potrjeno)', generated: 'Izdelano dne',
     r4: 'Člen 4(4) · Merila za enakovredno delo', r5: 'Člen 5 · Podatki o plači pred zaposlitvijo', r6: 'Člen 6 · Merila za določanje plač', r7a: 'Člen 7(3) · Letno obveščanje zaposlenih', r7b: 'Člen 7 in člen 9(10) · Zahteve in pojasnila', r8: 'Člen 8 · Dostopne informacije', r9: 'Člen 9 · Poročilo o razliki v plačah', r10: 'Člen 10 · Skupna ocena plač',
     e4: (n, total, agreement) => `Merila (spretnosti, napor, odgovornost, delovne razmere) dokumentirana za ${n} od ${total} kategorij. Dogovor s predstavniki delavcev: ${agreement}.`,
@@ -55,6 +56,8 @@ export async function evidenceDocument(store, company, year, today = new Date().
   if (!snapshot || workflow.snapshotId !== snapshot.id) workflow = {};
   const criteria = await store.companyDocument(company.id, 'pay_criteria');
   const notice = await store.rightsNotice(company.id, year);
+  const controls = await store.companyDocument(company.id,`employer_controls_${year}`);
+  const recorded = id => controls?.snapshotId === snapshot?.id && controls?.records?.[id]?.status === 'recorded';
   const requests = (await store.listInfoRequests(company.id)).filter(r => r.received_on.slice(0, 4) === String(year)).map(r => requestState(r, today));
   const categories = analysis?.groups.map(g => g.category) || [];
   const headcount = workflow.profile?.headcount || analysis?.count || null, duty = obligation(headcount);
@@ -62,23 +65,23 @@ export async function evidenceDocument(store, company, year, today = new Date().
   const add = (label, state, evidence) => rows.push([label, state, evidence]);
 
   const documented = categories.filter(c => ['skills', 'effort', 'responsibility', 'conditions'].every(k => workflow.classification?.[c]?.[k]));
-  add(t.r4, categories.length && documented.length === categories.length && workflow.criteriaAgreement?.status && workflow.criteriaAgreement.status !== 'pending' ? t.done : documented.length ? t.partial : t.open, categories.length ? t.e4(documented.length, categories.length, t.agreement[workflow.criteriaAgreement?.status || '']) : t.na);
+  add(t.r4, categories.length && documented.length === categories.length && evaluationCompleteness(workflow.jobEvaluation,snapshot?.rows).ready && ['agreed','no_representatives'].includes(workflow.criteriaAgreement?.status) ? t.done : documented.length ? t.partial : t.open, categories.length ? t.e4(documented.length, categories.length, t.agreement[workflow.criteriaAgreement?.status || '']) : t.na);
 
   const ranged = categories.filter(c => criteria?.ranges?.[c]);
-  add(t.r5, categories.length && ranged.length === categories.length ? t.done : ranged.length ? t.partial : t.open, ranged.length ? t.e5(ranged.length, categories.length) : t.e5none);
-  add(t.r6, criteria?.progression ? t.done : criteria ? t.partial : t.open, criteria ? t.e6(!!criteria.progression) : t.e6none);
+  add(t.r5, categories.length && ranged.length === categories.length && recorded('recruitment') ? t.done : ranged.length ? t.partial : t.open, ranged.length ? t.e5(ranged.length, categories.length) : t.e5none);
+  add(t.r6, criteria?.progression && recorded('criteriaAccess') ? t.done : criteria ? t.partial : t.open, criteria ? t.e6(!!criteria.progression) : t.e6none);
   add(t.r7a, notice ? t.done : t.open, notice ? t.e7a(notice.sent_on) : t.e7anone);
   const summary = summarize(requests);
   add(t.r7b, summary.overdue ? t.partial : requests.length ? t.done : t.open, requests.length ? t.e7b(summary) : t.e7bnone);
-  add(t.r8, t.done, t.e8);
+  add(t.r8, recorded('accessibility') ? t.done : t.partial, t.e8);
 
   const approval = workflow.approval || {}, confirmed = !!approval.confirmed && !!approval.consulted;
   const dutyLine = duty?.reporting ? t.e9.dutyYes(duty.band, duty.firstDue, duty.frequencyYears) : t.e9.dutyNo;
   const e9 = [dutyLine, analysis ? t.e9.data(analysis.count) : t.e9.nodata, confirmed ? t.e9.confirmed(approval.manager || '—', approval.representatives || '—', workflow.reportingDate) : t.e9.unconfirmed].join(' ');
-  add(t.r9, !analysis ? t.open : confirmed ? t.done : t.partial, e9);
+  add(t.r9, !analysis ? t.open : confirmed && readiness(workflow,analysis,snapshot).ready && recorded('distribution') ? t.done : t.partial, e9);
 
   const flagged = analysis?.groups.filter(g => g.review_required) || [];
-  const resolved = flagged.filter(g => workflow.reviews?.[g.category]?.justified || workflow.reviews?.[g.category]?.remedied);
+  const resolved = flagged.filter(g => {const r=workflow.reviews?.[g.category];return r?.justified && r.explanation || r?.remedied && remediationComplete(r.proof,snapshot.id);});
   const deadline = readiness(workflow, analysis || { count: 0, groups: [] }, snapshot).assessments.find(a => a.deadline)?.deadline;
   add(t.r10, !analysis ? t.open : !flagged.length ? t.done : resolved.length === flagged.length ? t.done : t.partial, !analysis ? t.na : !flagged.length ? t.e10.none : [t.e10.some(flagged.length, resolved.length, flagged.length - resolved.length), deadline ? t.e10.deadline(deadline) : ''].filter(Boolean).join(' '));
 

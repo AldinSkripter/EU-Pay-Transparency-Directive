@@ -1,3 +1,6 @@
+import {payImportLimits} from '../shared/pay-import-limits.js';
+import {uploadPayFile} from './pay-upload';
+import PayUploadProgress from './PayUploadProgress';
 import React,{useEffect,useState} from 'react';
 import {Upload,Download,ArrowRight} from 'lucide-react';
 import {api,Button,ArrowButton,Tag,TextField,CheckField,Notice,download,template,errorText} from './ui';
@@ -5,7 +8,6 @@ import {acceptAttribute,textEncodings,formatSummary} from '../shared/import-form
 import ImportAssistant,{serializeFixes} from './ImportAssistant';
 
 const required=['internal_id','gender','job_title','worker_category','base_annual','paid_hours_annual','hours_per_week'];
-const encodeFile=file=>new Promise((resolve,reject)=>{const reader=new FileReader();reader.onerror=()=>reject(new Error('INVALID_FILE'));reader.onload=()=>resolve({name:file.name,base64:String(reader.result).split(',')[1]});reader.readAsDataURL(file);});
 
 export default function ImportPanel({L,year,perform,busy,onImported,snapshot,batch,onBatchUsed}) {
   const [csv,setCsv]=useState(''),[file,setFile]=useState(null),[preview,setPreview]=useState(null),[mapping,setMapping]=useState({});
@@ -20,8 +22,8 @@ export default function ImportPanel({L,year,perform,busy,onImported,snapshot,bat
   const payload=()=>({...batch?{batchId:batch.id}:file?{file}:{csv},year,sheet:sheet||undefined,headerRow:Number(headerRow),recordPath:recordPath||undefined,zipEntry:zipEntry||undefined,encoding:encoding||undefined});
   const choose=selected=>perform(async()=>{
     if(!selected)return;
-    if(selected.size>4*1024*1024)throw new Error('PAYLOAD_TOO_LARGE');
-    const uploaded=await encodeFile(selected);setFile(uploaded);setCsv('');setSheet('');setHeaderRow(1);setRecordPath('');setZipEntry('');setChoices(null);invalidate();
+    if(selected.size>payImportLimits.uploadBytes)throw new Error('IMPORT_UPLOAD_SIZE');
+    const uploaded=await uploadPayFile(selected);setFile(uploaded);setCsv('');setSheet('');setHeaderRow(1);setRecordPath('');setZipEntry('');setChoices(null);invalidate();
   });
   const showPreview=()=>perform(async()=>{
     invalidate();const result=await api('/import/preview',payload());setChoices(result);
@@ -39,8 +41,9 @@ export default function ImportPanel({L,year,perform,busy,onImported,snapshot,bat
   const fieldLabel=field=>fields.find(([id])=>id===field)?.[1]||field;
   const warnings={REPORTING_PERIOD_NOT_IN_FILE:L('Kein Berichtsjahr in der Datei: Jahresbezug bestätigen.','Datoteka nima leta poročanja: potrdite letno obdobje.'),CURRENCY_NOT_IN_FILE:L('Keine Währung in der Datei: EUR bestätigen.','Datoteka nima valute: potrdite EUR.'),AMBIGUOUS_DECIMAL_FORMAT:L('Uneinheitliche Zahlenformate: Daten vor dem Import korrigieren.','Neenotne oblike števil: pred uvozom popravite podatke.'),PAY_BASIS_REQUIRES_REVIEW:L('Bruttobetrag ist nicht automatisch Jahresgrundvergütung. Bedeutung und Zeitraum prüfen.','Bruto znesek ni samodejno letno osnovno plačilo. Preverite pomen in obdobje.')};
   return <section className="panel import-panel">
+    <PayUploadProgress L={L}/>
     {snapshot&&<Notice>{L('Ein neuer Import ersetzt den aktuellen Arbeitsdatenstand. Kategorien und Freigaben erneut prüfen. Ein identischer erneuter Import erstellt keinen neuen Datenstand.','Nov uvoz nadomesti trenutne podatke. Ponovno preverite kategorije in potrditve. Enak ponovni uvoz ne ustvari novega podatkovnega posnetka.')}</Notice>}
-    <div className="import-intro"><span className="large-icon"><Upload size={27}/></span><div><h3>{L('Gehaltsdaten importieren','Uvoz podatkov o plačah')}</h3><p>{L(`${formatSummary} · bis 4 MB · eine Person je Jahresdatensatz in EUR.`,`${formatSummary} · do 4 MB · en letni zapis na zaposlenega v EUR.`)}</p></div><Button secondary onClick={()=>download(template,'equitensa-template.csv')}><Download size={16}/>{L('Vorlage','Predloga')}</Button></div>
+    <div className="import-intro"><span className="large-icon"><Upload size={27}/></span><div><h3>{L('Gehaltsdaten importieren','Uvoz podatkov o plačah')}</h3><p>{L(`${formatSummary} · bis 1 GB Upload · eine Person je Jahresdatensatz in EUR.`,`${formatSummary} · do 1 GB nalaganja · en letni zapis na zaposlenega v EUR.`)}</p></div><Button secondary onClick={()=>download(template,'equitensa-template.csv')}><Download size={16}/>{L('Vorlage','Predloga')}</Button></div>
     {batch?<Notice>{L(`Lieferung per API: ${batch.source} · ${batch.record_count} Datensätze für ${batch.reporting_year}. Prüfen Sie die Zuordnung in der Vorschau und bestätigen Sie den Import.`,`Pošiljka prek API: ${batch.source} · ${batch.record_count} zapisov za ${batch.reporting_year}. Preverite preslikavo v predogledu in potrdite uvoz.`)} <Button secondary disabled={busy} onClick={()=>{onBatchUsed?.();invalidate();setChoices(null);}}>{L('Zurück zum Datei-Upload','Nazaj na nalaganje datoteke')}</Button></Notice>:<label className="upload-zone" onDragOver={e=>e.preventDefault()} onDrop={e=>{e.preventDefault();if(!busy)choose(e.dataTransfer.files?.[0]);}}><Upload size={25}/><strong>{file?.name||L('Datei auswählen oder hier ablegen','Izberite ali spustite datoteko')}</strong><span>{L('Inhalt wird geprüft; der Dateiname bestimmt das Format nicht.','Preveri se vsebina; ime datoteke ne določa oblike.')}</span><input type="file" disabled={busy} accept={acceptAttribute} onChange={e=>{choose(e.target.files?.[0]);e.target.value='';}}/></label>}
     {file&&<Button secondary disabled={busy} onClick={()=>{setFile(null);setChoices(null);invalidate();}}>{L('Datei entfernen','Odstrani datoteko')}</Button>}
     {!file&&!batch&&<TextField disabled={busy} label={L('Oder CSV / TXT einfügen','Ali prilepite CSV / TXT')} value={csv} placeholder={template} onChange={e=>{setCsv(e.target.value);setChoices(null);invalidate();}} spellCheck="false"/>}

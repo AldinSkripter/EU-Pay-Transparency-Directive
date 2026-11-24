@@ -10,7 +10,7 @@ const backupFormat = code => String(code || '').toLowerCase().replace(/[^a-f0-9]
 const backupCodes = () => Array.from({ length: 10 }, () => randomBytes(5).toString('hex'));
 const display = code => `${code.slice(0, 5)}-${code.slice(5)}`;
 
-export function createAccountService({ store, mailer, accountKey }) {
+export function createAccountService({ store, mailer, accountKey, emailPlatform }) {
   const failures = new Map();
   const sealed = secret => encryptControl({ secret }, accountKey);
   const opened = value => decryptControl(value, accountKey).secret;
@@ -18,8 +18,16 @@ export function createAccountService({ store, mailer, accountKey }) {
   async function sendToken(user, kind, country, origin) {
     const token = randomBytes(32).toString('hex'), verify = kind === 'verify';
     await store.saveUserToken(hashToken(token), user.id, verify ? 'verify_email' : 'reset_password', new Date(Date.now() + (verify ? 24 : 1) * 3600_000));
-    try { await mailer.send({ to: user.email, ...accountMail(kind, country, `${origin}/?${verify ? 'verify' : 'reset'}=${token}`) }); }
-    catch (error) { console.error('Account email failed:', error.code || error.name); }
+    const link=`${origin}/?${verify ? 'verify' : 'reset'}=${token}`;
+    try {
+      if(emailPlatform){const company=await store.company(user.company_id);return await emailPlatform.sendAccount({kind,country,link,company:company?.name,email:user.email,userId:user.id});}
+      await mailer.send({ to: user.email, ...accountMail(kind, country, link) });return {status:'accepted'};
+    }catch {return {status:'failed'};}
+  }
+  async function sendEvent(user,kind,origin){
+    if(!emailPlatform)return;
+    const company=await store.company(user.company_id);
+    try{return await emailPlatform.sendAccount({kind,country:company.country,link:`${origin}/`,company:company.name,email:user.email,userId:user.id});}catch{return {status:'failed'};}
   }
 
   // TOTP codes are single-use per 30 s step; backup codes are single-use for good.
@@ -44,6 +52,7 @@ export function createAccountService({ store, mailer, accountKey }) {
       const userId = typeof token === 'string' && TOKEN.test(token) ? await store.consumeUserToken(hashToken(token), 'verify_email') : null;
       if (!userId) return res.status(400).json({ error: 'INVALID_TOKEN' });
       await store.updateUser(userId, { email_verified_at: new Date() });
+      await sendEvent(await store.findUserById(userId),'welcome',req.get('origin'));
       res.json({ ok: true });
     });
     // Always answers 200 so the response never reveals whether an address has an account.
@@ -65,6 +74,7 @@ export function createAccountService({ store, mailer, accountKey }) {
       await store.deleteUserSessions(userId);
       const user = await store.findUserById(userId);
       await store.audit(user.company_id, 'password_reset', { user_id: userId });
+      await sendEvent(user,'passwordChanged',req.get('origin'));
       res.json({ ok: true });
     });
   }
@@ -74,7 +84,7 @@ export function createAccountService({ store, mailer, accountKey }) {
     const reauth = async (req, user) => !user.password_hash || (typeof req.body.password === 'string' && req.body.password.length <= 128 && await verifyPassword(req.body.password, user.password_hash));
     app.post('/api/auth/resend-verification', authLimit, async (req, res) => {
       const user = await store.findUserById(req.session.user.id);
-      if (!user.email_verified_at) await sendToken(user, 'verify', req.session.company.country, req.get('origin'));
+      if (!user.email_verified_at) {const delivery=await sendToken(user, 'verify', req.session.company.country, req.get('origin'));if(delivery?.status==='failed')return res.status(503).json({error:'EMAIL_DELIVERY_FAILED'});}
       res.json({ ok: true });
     });
     app.post('/api/auth/password', authLimit, async (req, res) => {
@@ -84,6 +94,7 @@ export function createAccountService({ store, mailer, accountKey }) {
       await store.updateUser(user.id, { password_hash: await hashPassword(req.body.newPassword) });
       await store.deleteUserSessions(user.id, keep(req));
       await store.audit(user.company_id, 'password_changed', { user_id: user.id });
+      await sendEvent(user,'passwordChanged',req.get('origin'));
       res.json({ ok: true });
     });
     app.get('/api/auth/security', async (req, res) => {
@@ -120,5 +131,5 @@ export function createAccountService({ store, mailer, accountKey }) {
       res.json({ ok: true });
     });
   }
-  return { sendToken, consumeMfa, publicRoutes, sessionRoutes };
+  return { sendToken, sendEvent, consumeMfa, publicRoutes, sessionRoutes };
 }

@@ -70,6 +70,7 @@ test('verified admin settings immediately drive checkout, signed activation, sam
     if(url.includes('/prices/')){const key=priceKeys.find(k=>url.endsWith(config.prices[k])),[id,period]=key.split('_'),plan=plans.find(p=>p.id===id);return Response.json({id:config.prices[key],active:true,currency:'eur',unit_amount:plan[period]*100+(mismatch?1:0),type:'recurring',recurring:{interval:period==='annual'?'year':'month',interval_count:1,usage_type:'licensed'},billing_scheme:'per_unit',tax_behavior:'exclusive',livemode:false});}
     if(url.endsWith('/checkout/sessions')){checkoutBody=options.body;return Response.json({id:'cs_Test',url:'https://checkout.stripe.com/c/pay/test'});}
     if(url.includes('/subscriptions/'))return Response.json({customer:'cus_Test'});
+    if(url.endsWith('/billing_portal/configurations'))return Response.json({id:'bpc_Test'});
     if(url.endsWith('/billing_portal/sessions'))return Response.json({url:'https://billing.stripe.com/p/session/test'});
     throw new Error('Unexpected Stripe operation');
   };
@@ -81,7 +82,7 @@ test('verified admin settings immediately drive checkout, signed activation, sam
   assert.doesNotMatch(JSON.stringify(view),/sk_test_|whsec_|Secret123|Signing123/);
   assert.equal((await request('/admin/payments',owner,config)).status,409);
   const registered=await request('/auth/register',null,{email:'buyer@example.com',password,companyName:'Buyer GmbH',country:'AT'});verifyAll(store);const customer=registered.headers.get('set-cookie').split(';')[0];
-  const checkout=await marketRequest('equitensa.at','/billing/checkout',customer,{plan:'prepare',interval:'annual',accepted:true});assert.equal(checkout.status,201);
+  const checkout=await marketRequest('equitensa.at','/billing/checkout',customer,{plan:'prepare',interval:'annual',accepted:true,contractVersion:"pay-2026-11-11-12m"});assert.equal(checkout.status,201);
   assert.equal(checkoutBody.get('success_url'),'https://equitensa.at/?checkout=success');
   assert.equal(checkoutBody.get('line_items[0][price]'),config.prices.prepare_annual);
   const order=[...store.orders.values()][0];assert.equal(order.status,'pending');assert.equal(order.mode,'stripe');assert.equal(order.stripe_environment,'test');

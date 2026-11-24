@@ -1,13 +1,15 @@
 // Single source of truth for packages and the EU reporting thresholds. Imported by the server
 // (billing, reporting plan) and by the browser (pricing page, size checker), so they cannot drift.
 
-// Net B2B prices in EUR. The annual price is about 24 % below twelve monthly payments.
+// Net B2B prices in EUR. Billing frequency does not change the 12-month minimum term.
 // Stripe prices must carry exactly these amounts; the owner panel refuses mismatching prices.
 export const plans = [
-  { id: 'prepare', name: 'Prepare', monthly: 99, annual: 899, limit: 250 },
-  { id: 'growth', name: 'Growth', monthly: 199, annual: 1799, limit: 1000 },
-  { id: 'scale', name: 'Scale', monthly: 399, annual: 3599, limit: 2500 },
+  { id: 'prepare', name: 'Prepare', monthly: 119, annual: 1428, limit: 249 },
+  { id: 'growth', name: 'Growth', monthly: 249, annual: 2988, limit: 999 },
+  { id: 'scale', name: 'Scale', monthly: 499, annual: 5988, limit: 2500 },
 ];
+export const contractVersion = 'pay-2026-11-11-12m';
+export const minimumTermMonths = 12;
 export const annualSavingsPercent = plan => Math.round((1 - plan.annual / (plan.monthly * 12)) * 100);
 
 // The smallest package whose employee limit covers the headcount; null above the largest limit.
@@ -29,4 +31,11 @@ export function upcomingDeadlines(headcount, count = 3) {
   if (!duty?.reporting) return [];
   const firstYear = Number(duty.firstDue.slice(0, 4));
   return Array.from({ length: count }, (_, i) => ({ due: `${firstYear + i * duty.frequencyYears}-06-07`, referenceYear: duty.referenceYear + i * duty.frequencyYears }));
+}
+
+// Whether this calendar year's payroll belongs to an EU-minimum mandatory report.
+// This does not decide stricter national rules or changes of headcount across years.
+export function isEuReportingYear(headcount, year) {
+  const duty = obligation(headcount);
+  return !!duty?.reporting && Number.isInteger(year) && year >= duty.referenceYear && (year - duty.referenceYear) % duty.frequencyYears === 0;
 }

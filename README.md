@@ -1,6 +1,8 @@
 # Equitensa · EU Pay Transparency
 
-Kako podatke iz HR i payroll sistema dovesti u aplikaciju (datoteka, API za slanje, zašto nema lažnih konektora): [Integracije](docs/INTEGRATIONS.md). Šta direktiva traži i šta sistem ispunjava (a šta ne): [Usklađenost s Direktivom 2023/970](docs/EU-COMPLIANCE.md). Pregled zahtjeva iz razvojne specifikacije v2 i backlog: [Development v2](docs/DEVELOPMENT-V2.md). Uvoz podržava XLSX/XLS/ODS/XML/JSON/CSV/TXT/TSV, fiksnu širinu (ASC/DAT/LST/PRN), HTML-tabele, Excel 2003 XML i ZIP s tim datotekama (XLSB nije podržan), izbor lista i zaglavlja, DE/SL/EN prijedloge mapiranja, tenant profile i historiju importa. Izvoz: PDF/XLSX/CSV/JSON/XML/TXT. [API i sigurnosne granice importa](docs/IMPORT-ENGINE.md). Za postojeću bazu pokrenuti `npm run db:migrate` radi novih migracija 005 (import batchevi) i 006 (mjesečni payroll ledger).
+Izvještaji po državama: [obuhvat, dodatni podaci, obračun i provjera](docs/NATIONAL-REPORTS.md). DE/AT imaju odvojene dodatne nacionalne dokumente; SI koristi slovenski EU izvještaj dok nacionalni adapter nije potvrđen. Ovo nije potvrda cjelokupne zakonske usklađenosti.
+
+Kako podatke iz HR i payroll sistema dovesti u aplikaciju (datoteka, API za slanje, zašto nema lažnih konektora): [Integracije](docs/INTEGRATIONS.md). Šta direktiva traži i šta sistem ispunjava (a šta ne): [Usklađenost s Direktivom 2023/970](docs/EU-COMPLIANCE.md). Pregled zahtjeva iz razvojne specifikacije v2 i backlog: [Development v2](docs/DEVELOPMENT-V2.md). Uvoz podržava XLSX/XLS/ODS/XML/JSON/CSV/TXT/TSV, fiksnu širinu (ASC/DAT/LST/PRN), HTML-tabele, Excel 2003 XML i ZIP s tim datotekama (XLSB nije podržan), izbor lista i zaglavlja, DE/SL/EN prijedloge mapiranja, tenant profile i historiju importa. Izvoz: PDF/XLSX/CSV/JSON/XML/TXT. [API i sigurnosne granice importa](docs/IMPORT-ENGINE.md). Za postojeću bazu pokrenuti `npm run db:migrate` radi novih migracija 005 (import batchevi) i 006 (mjesečni payroll ledger), te 012 (pojedinačni indeksirani obračunski zapisi za obradu po blokovima).
 
 Samostalna B2B aplikacija za Njemačku, Austriju i Sloveniju, u ovom repozitoriju. Cilj: jedan IONOS VPS, Ubuntu 24.04 i Plesk.
 
@@ -70,4 +72,7 @@ Godišnja naknada / potvrđeni plaćeni godišnji sati je osnova radne analize. 
 - [Početna arhitektura](docs/ARCHITECTURE.md) — dopunjena novom specifikacijom i billing dokumentom
 - [IONOS/Plesk](docs/IONOS-PLESK.md)
 
-Nacionalno nadležno tijelo dobija a–g prema članku 9(7); javna objava a–f. Nema potvrđenog jedinstvenog AJPES XSD-a, Arbeitsinspektorat CSV-a ili novog Bundesanzeiger formata. XML je interni `urn:equitensa:internal:draft:v1`. Prije produkcije još su potrebni operativna DB/Stripe provjera, nacionalni adapteri i metodologija, MFA/oporavak računa, proširene uloge, komercijalni dokumenti, backup/restore i sigurnosna provjera.
+Nacionalno nadležno tijelo dobija a–g prema članku 9(7); javna objava a–f. Novi službeni kanali i sheme nisu verifikovani, a XML je interni format. Procjena poslova, MFA/oporavak, dopune izvještaja i godišnje brisanje su implementirani. Prije stvarnih kupaca ostaju nacionalna pravna potvrda i provjera produkcijske infrastrukture, ugovora i podataka: [trenutno stanje](docs/PRODUCT-READINESS.md).
+- [Trenutna implementacija, svih 37 članova i preostalo prije prodaje](docs/PRODUCT-READINESS.md)
+- [Ponovno generisanje sintetičkih izvještaja](scripts/generate-report-examples.mjs) — `node scripts/generate-report-examples.mjs`; sadržaj se čuva u [primjerima](docs/examples/eu-reference/).
+- [Admin SMTP, predlošci emailova, potvrda registracije i lokalni testni inbox](docs/EMAIL-ADMIN.md)

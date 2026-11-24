@@ -18,6 +18,11 @@ export class MemoryStore {
   async expireIngestBatches(olderThan) {let n=0;for(const row of this.ingestBatches.values())if(row.status==='pending'&&row.created_at<olderThan){row.status='discarded';row.payload='';n++;}return n;}
   async companyDocument(companyId,kind) {return structuredClone(this.companyDocuments.get(`${companyId}:${kind}`)||null);}
   async saveCompanyDocument(companyId,kind,document) {this.companyDocuments.set(`${companyId}:${kind}`,structuredClone(document));}
+  async mutateFinance(companyId,initial,change) {
+    const key=`${companyId}:finance_v1`,state=structuredClone(this.companyDocuments.get(key)||initial);
+    const result=change(state); // Synchronous: no interleaving between reading and committing.
+    this.companyDocuments.set(key,structuredClone(state));return structuredClone(result);
+  }
   async listInfoRequests(companyId) {return structuredClone([...this.infoRequests.values()].filter(r=>r.company_id===companyId).sort((a,b)=>a.due_on.localeCompare(b.due_on)||a.created_at.localeCompare(b.created_at)));}
   async createInfoRequest(companyId,request) {const row={id:randomUUID(),company_id:companyId,status:'open',answered_on:null,answer_summary:null,created_at:new Date().toISOString(),...request};this.infoRequests.set(row.id,row);return structuredClone(row);}
   async getInfoRequest(companyId,id) {const row=this.infoRequests.get(id);return row&&row.company_id===companyId?structuredClone(row):null;}
@@ -57,7 +62,11 @@ export class MemoryStore {
   async saveWorkflow(companyId, year, document) { this.workflows.set(`${companyId}:${year}`, structuredClone(document)); }
   async createOrder(order) { this.orders.set(order.id,{...order,created_at:new Date().toISOString(),event_created:0}); }
   async linkOrder(id, session) { this.orders.get(id).provider_session = session; }
-  async activeOrder(companyId) { return [...this.orders.values()].findLast(o=>o.company_id===companyId && o.status !== 'pending') || null; }
+  async activeOrder(companyId) { const o=[...this.orders.values()].findLast(o=>o.company_id===companyId && o.status !== 'pending') || null;
+    const c=o?.mode==='sandbox'?await this.companyDocument(companyId,`bc_${o.id}`):null;
+    if(o&&o.status==='sandbox_active'&&c?.cancelAt&&Date.parse(c.cancelAt)<=Date.now())o.status='cancelled';
+    return o;
+  }
   async order(id) { return this.orders.get(id)||null; }
   async adminCompanyExists(id) { return this.companies.has(id); }
   async retireTestOrders() {let count=0;for(const order of this.orders.values())if(order.mode==='stripe' && order.stripe_environment==='test' && order.status!=='test_retired'){order.status='test_retired';count++;}return count;}
@@ -153,6 +162,17 @@ export class PostgresStore {
   async expireIngestBatches(olderThan) {return (await this.pool.query("UPDATE ingest_batches SET status='discarded',closed_at=now(),payload='' WHERE status='pending' AND created_at<$1",[olderThan])).rowCount;}
   async companyDocument(companyId,kind) {return (await this.pool.query('SELECT document FROM company_documents WHERE company_id=$1 AND kind=$2',[companyId,kind])).rows[0]?.document||null;}
   async saveCompanyDocument(companyId,kind,document) {await this.pool.query('INSERT INTO company_documents(company_id,kind,document) VALUES($1,$2,$3) ON CONFLICT(company_id,kind) DO UPDATE SET document=$3,updated_at=now()',[companyId,kind,JSON.stringify(document)]);}
+  async mutateFinance(companyId,initial,change) {
+    const client=await this.pool.connect();
+    try{
+      await client.query('BEGIN');
+      await client.query("INSERT INTO company_documents(company_id,kind,document) VALUES($1,'finance_v1',$2) ON CONFLICT DO NOTHING",[companyId,JSON.stringify(initial)]);
+      const row=(await client.query("SELECT document FROM company_documents WHERE company_id=$1 AND kind='finance_v1' FOR UPDATE",[companyId])).rows[0];
+      const state=row.document,result=change(state);
+      await client.query("UPDATE company_documents SET document=$2,updated_at=now() WHERE company_id=$1 AND kind='finance_v1'",[companyId,JSON.stringify(state)]);
+      await client.query('COMMIT');return result;
+    }catch(e){await client.query('ROLLBACK');throw e;}finally{client.release();}
+  }
   async listInfoRequests(companyId) {return (await this.pool.query("SELECT id,company_id,to_char(received_on,'YYYY-MM-DD') AS received_on,to_char(due_on,'YYYY-MM-DD') AS due_on,channel,kind,requester_label,note,status,to_char(answered_on,'YYYY-MM-DD') AS answered_on,answer_summary,created_at FROM info_requests WHERE company_id=$1 ORDER BY due_on,created_at",[companyId])).rows;}
   async createInfoRequest(companyId,r) {return (await this.pool.query("INSERT INTO info_requests(id,company_id,received_on,due_on,channel,requester_label,note,created_by,kind) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) RETURNING id,company_id,to_char(received_on,'YYYY-MM-DD') AS received_on,to_char(due_on,'YYYY-MM-DD') AS due_on,channel,kind,requester_label,note,status,to_char(answered_on,'YYYY-MM-DD') AS answered_on,answer_summary,created_at",[randomUUID(),companyId,r.received_on,r.due_on,r.channel,r.requester_label,r.note,r.created_by||null,r.kind||'information'])).rows[0];}
   async getInfoRequest(companyId,id) {return (await this.pool.query("SELECT id,company_id,to_char(received_on,'YYYY-MM-DD') AS received_on,to_char(due_on,'YYYY-MM-DD') AS due_on,channel,kind,requester_label,note,status,to_char(answered_on,'YYYY-MM-DD') AS answered_on,answer_summary,created_at FROM info_requests WHERE company_id=$1 AND id=$2",[companyId,id])).rows[0]||null;}
@@ -273,8 +293,8 @@ export class PostgresStore {
     };
     try {
       await client.query('BEGIN');
+      await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`${companyId}:${year}`]);
       if(importData) {
-        await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1,0))',[`${companyId}:${year}`]);
         const previous=(await client.query('SELECT s.* FROM snapshots s JOIN import_batches b ON b.snapshot_id=s.id AND b.company_id=s.company_id WHERE s.company_id=$1 AND s.reporting_year=$2 AND b.fingerprint=$3 AND s.id=(SELECT id FROM snapshots WHERE company_id=$1 AND reporting_year=$2 ORDER BY created_at DESC,id DESC LIMIT 1)',[companyId,year,importData.fingerprint])).rows[0];
         if(previous){await finalizePayroll(previous.id);await client.query('COMMIT');return {...previous,replayed:true};}
       }

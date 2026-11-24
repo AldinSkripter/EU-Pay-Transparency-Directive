@@ -72,7 +72,7 @@ export function addPayrollRecords(document,parsed,{kind,mapping,source,company,s
       }
     }catch(error){if(errors.length<50)errors.push({row:index+2,error:error.message});}
   });
-  if(Object.keys(next.employees).length>10000||Object.keys(next.transactions).length>150000)errors.push({error:'PAYROLL_CAPACITY_LIMIT'});
+  if(Object.keys(next.employees).length>10000)errors.push({error:'PAYROLL_CAPACITY_LIMIT'});
   return {document:next,errors,added,duplicates};
 }
 export function approvePayrollCodes(document,definitions,actor) {

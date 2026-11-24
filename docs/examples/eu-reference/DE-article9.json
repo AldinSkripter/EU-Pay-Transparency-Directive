@@ -1,0 +1,248 @@
+{
+  "schema": "urn:equitensa:internal:report:v1",
+  "status": "DRAFT_UNVERIFIED",
+  "language": "de",
+  "company": {
+    "name": "SYNTHETIC EXAMPLE DE — not a real company",
+    "country": "DE"
+  },
+  "reportingYear": 2026,
+  "snapshotId": "synthetic-reference-2026",
+  "rulesVersion": "EU-2023-970-v2",
+  "source": "https://eur-lex.europa.eu/eli/dir/2023/970/oj/eng",
+  "officialSubmission": false,
+  "methodology": "annual-pay / declared-annual-paid-hours; unadjusted M/F; minimum subgroup 5; separate hourly/annual quartiles; stable quartile ties; version 2",
+  "workforce": {
+    "total": 16,
+    "men": 8,
+    "women": 8,
+    "other": 0
+  },
+  "confirmation": {
+    "confirmed": true,
+    "consulted": true,
+    "reportingDate": null,
+    "manager": "Synthetic management"
+  },
+  "summary": {
+    "count": 16,
+    "male_count": 8,
+    "female_count": 8,
+    "other_count": 0,
+    "suppressed": false,
+    "mean_gap": -90.9091,
+    "median_gap": -90.9091,
+    "base_gap": -100,
+    "variable_gap": 0,
+    "median_variable_gap": 0,
+    "annual_mean_gap": 52.2727,
+    "annual_median_gap": 52.2727,
+    "annual_base_gap": 50,
+    "annual_variable_gap": 75,
+    "annual_median_variable_gap": 75,
+    "male_variable_receivers": 100,
+    "female_variable_receivers": 50,
+    "quartiles": [
+      {
+        "quartile": 1,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 100,
+        "female_percent": 0
+      },
+      {
+        "quartile": 2,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 100,
+        "female_percent": 0
+      },
+      {
+        "quartile": 3,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 0,
+        "female_percent": 100
+      },
+      {
+        "quartile": 4,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 0,
+        "female_percent": 100
+      }
+    ],
+    "annual_quartiles": [
+      {
+        "quartile": 1,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 0,
+        "female_percent": 100
+      },
+      {
+        "quartile": 2,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 0,
+        "female_percent": 100
+      },
+      {
+        "quartile": 3,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 100,
+        "female_percent": 0
+      },
+      {
+        "quartile": 4,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 100,
+        "female_percent": 0
+      }
+    ],
+    "methodology": "annual-pay / declared-annual-paid-hours; unadjusted M/F; minimum subgroup 5; separate hourly/annual quartiles; stable quartile ties; version 2"
+  },
+  "article9": [
+    {
+      "letter": "a",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(a)",
+      "title": "Geschlechtsspezifisches Entgeltgefälle (Durchschnitt)",
+      "values": {
+        "hourly": -90.9091,
+        "annual": 52.2727
+      }
+    },
+    {
+      "letter": "b",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(b)",
+      "title": "Geschlechtsspezifisches Entgeltgefälle bei ergänzenden oder variablen Bestandteilen (Durchschnitt)",
+      "values": {
+        "hourly": 0,
+        "annual": 75
+      }
+    },
+    {
+      "letter": "c",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(c)",
+      "title": "Medianes geschlechtsspezifisches Entgeltgefälle",
+      "values": {
+        "hourly": -90.9091,
+        "annual": 52.2727
+      }
+    },
+    {
+      "letter": "d",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(d)",
+      "title": "Medianes Entgeltgefälle bei ergänzenden oder variablen Bestandteilen",
+      "values": {
+        "hourly": 0,
+        "annual": 75
+      }
+    },
+    {
+      "letter": "e",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(e)",
+      "title": "Anteil der Frauen und Männer mit ergänzenden oder variablen Bestandteilen",
+      "values": {
+        "male_percent": 100,
+        "female_percent": 50
+      }
+    },
+    {
+      "letter": "f",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(f)",
+      "title": "Anteil der Frauen und Männer in jedem Entgeltquartil",
+      "values": [
+        {
+          "quartile": 1,
+          "count": 4,
+          "suppressed": false,
+          "male_percent": 100,
+          "female_percent": 0,
+          "annual_count": 4,
+          "annual_suppressed": false,
+          "annual_male_percent": 0,
+          "annual_female_percent": 100
+        },
+        {
+          "quartile": 2,
+          "count": 4,
+          "suppressed": false,
+          "male_percent": 100,
+          "female_percent": 0,
+          "annual_count": 4,
+          "annual_suppressed": false,
+          "annual_male_percent": 0,
+          "annual_female_percent": 100
+        },
+        {
+          "quartile": 3,
+          "count": 4,
+          "suppressed": false,
+          "male_percent": 0,
+          "female_percent": 100,
+          "annual_count": 4,
+          "annual_suppressed": false,
+          "annual_male_percent": 100,
+          "annual_female_percent": 0
+        },
+        {
+          "quartile": 4,
+          "count": 4,
+          "suppressed": false,
+          "male_percent": 0,
+          "female_percent": 100,
+          "annual_count": 4,
+          "annual_suppressed": false,
+          "annual_male_percent": 100,
+          "annual_female_percent": 0
+        }
+      ]
+    },
+    {
+      "letter": "g",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(g)",
+      "title": "Entgeltgefälle nach Kategorien von Arbeitnehmern (gleiche oder gleichwertige Arbeit)",
+      "values": [
+        {
+          "category": "Reference category",
+          "count": 16,
+          "male_count": 8,
+          "female_count": 8,
+          "suppressed": false,
+          "comparable": true,
+          "base_gap_hourly": -100,
+          "variable_gap_hourly": 0,
+          "mean_gap_hourly": -90.9091,
+          "base_gap_annual": 50,
+          "variable_gap_annual": 75
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "category": "Reference category",
+      "count": 16,
+      "male_count": 8,
+      "female_count": 8,
+      "other_count": 0,
+      "suppressed": false,
+      "mean_gap": -90.9091,
+      "median_gap": -90.9091,
+      "base_gap": -100,
+      "variable_gap": 0,
+      "median_variable_gap": 0,
+      "annual_mean_gap": 52.2727,
+      "annual_median_gap": 52.2727,
+      "annual_base_gap": 50,
+      "annual_variable_gap": 75,
+      "annual_median_variable_gap": 75,
+      "male_variable_receivers": 100,
+      "female_variable_receivers": 50
+    }
+  ],
+  "audience": "authority"
+}

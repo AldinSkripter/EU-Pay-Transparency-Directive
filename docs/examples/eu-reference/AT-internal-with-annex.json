@@ -1,0 +1,1788 @@
+{
+  "schema": "urn:equitensa:internal:report:v1",
+  "status": "DRAFT_UNVERIFIED",
+  "language": "de",
+  "company": {
+    "name": "SYNTHETIC EXAMPLE AT — not a real company",
+    "country": "AT"
+  },
+  "reportingYear": 2026,
+  "snapshotId": "synthetic-reference-2026",
+  "rulesVersion": "EU-2023-970-v2",
+  "source": "https://eur-lex.europa.eu/eli/dir/2023/970/oj/eng",
+  "officialSubmission": false,
+  "methodology": "annual-pay / declared-annual-paid-hours; unadjusted M/F; minimum subgroup 5; separate hourly/annual quartiles; stable quartile ties; version 2",
+  "workforce": {
+    "total": 16,
+    "men": 8,
+    "women": 8,
+    "other": 0
+  },
+  "confirmation": {
+    "confirmed": true,
+    "consulted": true,
+    "reportingDate": null,
+    "manager": "Synthetic management",
+    "representatives": "Synthetic consultation"
+  },
+  "summary": {
+    "count": 16,
+    "male_count": 8,
+    "female_count": 8,
+    "other_count": 0,
+    "suppressed": false,
+    "comparable": true,
+    "review_gap_hourly": -90.9091,
+    "review_gap_annual": 52.2727,
+    "review_required": true,
+    "mean_gap": -90.9091,
+    "median_gap": -90.9091,
+    "base_gap": -100,
+    "variable_gap": 0,
+    "median_variable_gap": 0,
+    "annual_mean_gap": 52.2727,
+    "annual_median_gap": 52.2727,
+    "annual_base_gap": 50,
+    "annual_variable_gap": 75,
+    "annual_median_variable_gap": 75,
+    "male_variable_receivers": 100,
+    "female_variable_receivers": 50,
+    "quartiles": [
+      {
+        "quartile": 1,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 100,
+        "female_percent": 0
+      },
+      {
+        "quartile": 2,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 100,
+        "female_percent": 0
+      },
+      {
+        "quartile": 3,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 0,
+        "female_percent": 100
+      },
+      {
+        "quartile": 4,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 0,
+        "female_percent": 100
+      }
+    ],
+    "annual_quartiles": [
+      {
+        "quartile": 1,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 0,
+        "female_percent": 100
+      },
+      {
+        "quartile": 2,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 0,
+        "female_percent": 100
+      },
+      {
+        "quartile": 3,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 100,
+        "female_percent": 0
+      },
+      {
+        "quartile": 4,
+        "count": 4,
+        "suppressed": false,
+        "male_percent": 100,
+        "female_percent": 0
+      }
+    ],
+    "methodology": "annual-pay / declared-annual-paid-hours; unadjusted M/F; minimum subgroup 5; separate hourly/annual quartiles; stable quartile ties; version 2"
+  },
+  "article9": [
+    {
+      "letter": "a",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(a)",
+      "title": "Geschlechtsspezifisches Entgeltgefälle (Durchschnitt)",
+      "values": {
+        "hourly": -90.9091,
+        "annual": 52.2727
+      }
+    },
+    {
+      "letter": "b",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(b)",
+      "title": "Geschlechtsspezifisches Entgeltgefälle bei ergänzenden oder variablen Bestandteilen (Durchschnitt)",
+      "values": {
+        "hourly": 0,
+        "annual": 75
+      }
+    },
+    {
+      "letter": "c",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(c)",
+      "title": "Medianes geschlechtsspezifisches Entgeltgefälle",
+      "values": {
+        "hourly": -90.9091,
+        "annual": 52.2727
+      }
+    },
+    {
+      "letter": "d",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(d)",
+      "title": "Medianes Entgeltgefälle bei ergänzenden oder variablen Bestandteilen",
+      "values": {
+        "hourly": 0,
+        "annual": 75
+      }
+    },
+    {
+      "letter": "e",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(e)",
+      "title": "Anteil der Frauen und Männer mit ergänzenden oder variablen Bestandteilen",
+      "values": {
+        "male_percent": 100,
+        "female_percent": 50
+      }
+    },
+    {
+      "letter": "f",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(f)",
+      "title": "Anteil der Frauen und Männer in jedem Entgeltquartil",
+      "values": [
+        {
+          "quartile": 1,
+          "count": 4,
+          "suppressed": false,
+          "male_percent": 100,
+          "female_percent": 0,
+          "annual_count": 4,
+          "annual_suppressed": false,
+          "annual_male_percent": 0,
+          "annual_female_percent": 100
+        },
+        {
+          "quartile": 2,
+          "count": 4,
+          "suppressed": false,
+          "male_percent": 100,
+          "female_percent": 0,
+          "annual_count": 4,
+          "annual_suppressed": false,
+          "annual_male_percent": 0,
+          "annual_female_percent": 100
+        },
+        {
+          "quartile": 3,
+          "count": 4,
+          "suppressed": false,
+          "male_percent": 0,
+          "female_percent": 100,
+          "annual_count": 4,
+          "annual_suppressed": false,
+          "annual_male_percent": 100,
+          "annual_female_percent": 0
+        },
+        {
+          "quartile": 4,
+          "count": 4,
+          "suppressed": false,
+          "male_percent": 0,
+          "female_percent": 100,
+          "annual_count": 4,
+          "annual_suppressed": false,
+          "annual_male_percent": 100,
+          "annual_female_percent": 0
+        }
+      ]
+    },
+    {
+      "letter": "g",
+      "reference": "Directive (EU) 2023/970, Art. 9(1)(g)",
+      "title": "Entgeltgefälle nach Kategorien von Arbeitnehmern (gleiche oder gleichwertige Arbeit)",
+      "values": [
+        {
+          "category": "Reference category",
+          "count": 16,
+          "male_count": 8,
+          "female_count": 8,
+          "suppressed": false,
+          "comparable": true,
+          "base_gap_hourly": -100,
+          "variable_gap_hourly": 0,
+          "mean_gap_hourly": -90.9091,
+          "base_gap_annual": 50,
+          "variable_gap_annual": 75,
+          "review_required": true,
+          "review_gap_hourly": -90.9091,
+          "review_gap_annual": 52.2727
+        }
+      ]
+    }
+  ],
+  "groups": [
+    {
+      "category": "Reference category",
+      "count": 16,
+      "male_count": 8,
+      "female_count": 8,
+      "other_count": 0,
+      "suppressed": false,
+      "comparable": true,
+      "review_gap_hourly": -90.9091,
+      "review_gap_annual": 52.2727,
+      "review_required": true,
+      "mean_gap": -90.9091,
+      "median_gap": -90.9091,
+      "base_gap": -100,
+      "variable_gap": 0,
+      "median_variable_gap": 0,
+      "annual_mean_gap": 52.2727,
+      "annual_median_gap": 52.2727,
+      "annual_base_gap": 50,
+      "annual_variable_gap": 75,
+      "annual_median_variable_gap": 75,
+      "male_variable_receivers": 100,
+      "female_variable_receivers": 50
+    }
+  ],
+  "audience": "internal",
+  "article10": {
+    "thresholdPercent": 5,
+    "categories": [
+      {
+        "category": "Reference category",
+        "comparable": true,
+        "gapHourly": -90.9091,
+        "gapAnnual": 52.2727,
+        "atOrAboveThreshold": true,
+        "justified": false,
+        "remedied": false
+      }
+    ]
+  },
+  "review": [
+    [
+      "snapshotId",
+      "synthetic-reference-2026"
+    ],
+    [
+      "profile.legalName",
+      "Synthetic reference employer"
+    ],
+    [
+      "profile.headcount",
+      16
+    ],
+    [
+      "profile.payrollComplete",
+      true
+    ],
+    [
+      "jobEvaluation.mode",
+      "documented"
+    ],
+    [
+      "jobEvaluation.methodology",
+      "Synthetic objective comparison of skills, effort, responsibility and working conditions"
+    ],
+    [
+      "jobEvaluation.reference",
+      "Synthetic evaluation v1"
+    ],
+    [
+      "jobEvaluation.assessedBy",
+      "Synthetic HR evaluator"
+    ],
+    [
+      "jobEvaluation.assessedOn",
+      "2026-01-01"
+    ],
+    [
+      "jobEvaluation.genderNeutralConfirmed",
+      true
+    ],
+    [
+      "jobEvaluation.categories.Reference category.rationale",
+      "Synthetic roles have comparable demands under the documented four-factor methodology."
+    ],
+    [
+      "jobEvaluation.categories.Reference category.evidence",
+      "Synthetic role descriptions and evaluation record v1."
+    ],
+    [
+      "classification.Reference category.skills",
+      "Synthetic skills"
+    ],
+    [
+      "classification.Reference category.effort",
+      "Synthetic effort"
+    ],
+    [
+      "classification.Reference category.responsibility",
+      "Synthetic responsibility"
+    ],
+    [
+      "classification.Reference category.conditions",
+      "Synthetic conditions"
+    ],
+    [
+      "criteriaAgreement.status",
+      "agreed"
+    ],
+    [
+      "criteriaAgreement.note",
+      "Synthetic agreement"
+    ],
+    [
+      "reviews.Reference category.explanation",
+      "Synthetic example: pay differences require correction."
+    ],
+    [
+      "reviews.Reference category.justified",
+      false
+    ],
+    [
+      "reviews.Reference category.remedied",
+      false
+    ],
+    [
+      "reviews.Reference category.action",
+      "Synthetic adjustment plan"
+    ],
+    [
+      "reviews.Reference category.owner",
+      "Synthetic HR"
+    ],
+    [
+      "reviews.Reference category.due",
+      "2027-05-01"
+    ],
+    [
+      "approval.manager",
+      "Synthetic management"
+    ],
+    [
+      "approval.representatives",
+      "Synthetic consultation"
+    ],
+    [
+      "approval.confirmed",
+      true
+    ],
+    [
+      "approval.consulted",
+      true
+    ],
+    [
+      "assessment.jointReviewConfirmed",
+      true
+    ],
+    [
+      "assessment.previousMeasures",
+      "First synthetic assessment: no earlier measures to evaluate."
+    ],
+    [
+      "assessment.leaveOutcomes.Reference category.applicable",
+      true
+    ],
+    [
+      "assessment.leaveOutcomes.Reference category.note",
+      "Synthetic eligible returners only."
+    ],
+    [
+      "assessment.leaveOutcomes.Reference category.men.eligible",
+      8
+    ],
+    [
+      "assessment.leaveOutcomes.Reference category.men.benefited",
+      4
+    ],
+    [
+      "assessment.leaveOutcomes.Reference category.women.eligible",
+      8
+    ],
+    [
+      "assessment.leaveOutcomes.Reference category.women.benefited",
+      6
+    ],
+    [
+      "reportingDate",
+      ""
+    ],
+    [
+      "employerControls.snapshotId",
+      "synthetic-reference-2026"
+    ],
+    [
+      "employerControls.records.scope.status",
+      "open"
+    ],
+    [
+      "employerControls.records.scope.owner",
+      "SYNTHETIC HR"
+    ],
+    [
+      "employerControls.records.scope.reviewedOn",
+      ""
+    ],
+    [
+      "employerControls.records.scope.evidence",
+      ""
+    ],
+    [
+      "employerControls.records.scope.action",
+      "Demonstration only; complete with real employer evidence."
+    ],
+    [
+      "employerControls.records.scope.due",
+      ""
+    ],
+    [
+      "employerControls.records.recruitment.status",
+      "open"
+    ],
+    [
+      "employerControls.records.recruitment.owner",
+      "SYNTHETIC HR"
+    ],
+    [
+      "employerControls.records.recruitment.reviewedOn",
+      ""
+    ],
+    [
+      "employerControls.records.recruitment.evidence",
+      ""
+    ],
+    [
+      "employerControls.records.recruitment.action",
+      "Demonstration only; complete with real employer evidence."
+    ],
+    [
+      "employerControls.records.recruitment.due",
+      ""
+    ],
+    [
+      "employerControls.records.criteriaAccess.status",
+      "open"
+    ],
+    [
+      "employerControls.records.criteriaAccess.owner",
+      "SYNTHETIC HR"
+    ],
+    [
+      "employerControls.records.criteriaAccess.reviewedOn",
+      ""
+    ],
+    [
+      "employerControls.records.criteriaAccess.evidence",
+      ""
+    ],
+    [
+      "employerControls.records.criteriaAccess.action",
+      "Demonstration only; complete with real employer evidence."
+    ],
+    [
+      "employerControls.records.criteriaAccess.due",
+      ""
+    ],
+    [
+      "employerControls.records.payDisclosure.status",
+      "open"
+    ],
+    [
+      "employerControls.records.payDisclosure.owner",
+      "SYNTHETIC HR"
+    ],
+    [
+      "employerControls.records.payDisclosure.reviewedOn",
+      ""
+    ],
+    [
+      "employerControls.records.payDisclosure.evidence",
+      ""
+    ],
+    [
+      "employerControls.records.payDisclosure.action",
+      "Demonstration only; complete with real employer evidence."
+    ],
+    [
+      "employerControls.records.payDisclosure.due",
+      ""
+    ],
+    [
+      "employerControls.records.accessibility.status",
+      "open"
+    ],
+    [
+      "employerControls.records.accessibility.owner",
+      "SYNTHETIC HR"
+    ],
+    [
+      "employerControls.records.accessibility.reviewedOn",
+      ""
+    ],
+    [
+      "employerControls.records.accessibility.evidence",
+      ""
+    ],
+    [
+      "employerControls.records.accessibility.action",
+      "Demonstration only; complete with real employer evidence."
+    ],
+    [
+      "employerControls.records.accessibility.due",
+      ""
+    ],
+    [
+      "employerControls.records.distribution.status",
+      "open"
+    ],
+    [
+      "employerControls.records.distribution.owner",
+      "SYNTHETIC HR"
+    ],
+    [
+      "employerControls.records.distribution.reviewedOn",
+      ""
+    ],
+    [
+      "employerControls.records.distribution.evidence",
+      ""
+    ],
+    [
+      "employerControls.records.distribution.action",
+      "Demonstration only; complete with real employer evidence."
+    ],
+    [
+      "employerControls.records.distribution.due",
+      ""
+    ],
+    [
+      "employerControls.records.privacy.status",
+      "open"
+    ],
+    [
+      "employerControls.records.privacy.owner",
+      "SYNTHETIC HR"
+    ],
+    [
+      "employerControls.records.privacy.reviewedOn",
+      ""
+    ],
+    [
+      "employerControls.records.privacy.evidence",
+      ""
+    ],
+    [
+      "employerControls.records.privacy.action",
+      "Demonstration only; complete with real employer evidence."
+    ],
+    [
+      "employerControls.records.privacy.due",
+      ""
+    ],
+    [
+      "employerControls.records.socialDialogue.status",
+      "open"
+    ],
+    [
+      "employerControls.records.socialDialogue.owner",
+      "SYNTHETIC HR"
+    ],
+    [
+      "employerControls.records.socialDialogue.reviewedOn",
+      ""
+    ],
+    [
+      "employerControls.records.socialDialogue.evidence",
+      ""
+    ],
+    [
+      "employerControls.records.socialDialogue.action",
+      "Demonstration only; complete with real employer evidence."
+    ],
+    [
+      "employerControls.records.socialDialogue.due",
+      ""
+    ],
+    [
+      "employerControls.records.remedies.status",
+      "open"
+    ],
+    [
+      "employerControls.records.remedies.owner",
+      "SYNTHETIC HR"
+    ],
+    [
+      "employerControls.records.remedies.reviewedOn",
+      ""
+    ],
+    [
+      "employerControls.records.remedies.evidence",
+      ""
+    ],
+    [
+      "employerControls.records.remedies.action",
+      "Demonstration only; complete with real employer evidence."
+    ],
+    [
+      "employerControls.records.remedies.due",
+      ""
+    ],
+    [
+      "employerControls.records.procurement.status",
+      "open"
+    ],
+    [
+      "employerControls.records.procurement.owner",
+      "SYNTHETIC HR"
+    ],
+    [
+      "employerControls.records.procurement.reviewedOn",
+      ""
+    ],
+    [
+      "employerControls.records.procurement.evidence",
+      ""
+    ],
+    [
+      "employerControls.records.procurement.action",
+      "Demonstration only; complete with real employer evidence."
+    ],
+    [
+      "employerControls.records.procurement.due",
+      ""
+    ],
+    [
+      "employerControls.records.retaliation.status",
+      "open"
+    ],
+    [
+      "employerControls.records.retaliation.owner",
+      "SYNTHETIC HR"
+    ],
+    [
+      "employerControls.records.retaliation.reviewedOn",
+      ""
+    ],
+    [
+      "employerControls.records.retaliation.evidence",
+      ""
+    ],
+    [
+      "employerControls.records.retaliation.action",
+      "Demonstration only; complete with real employer evidence."
+    ],
+    [
+      "employerControls.records.retaliation.due",
+      ""
+    ],
+    [
+      "employerControls.records.nationalReview.status",
+      "open"
+    ],
+    [
+      "employerControls.records.nationalReview.owner",
+      "SYNTHETIC HR"
+    ],
+    [
+      "employerControls.records.nationalReview.reviewedOn",
+      ""
+    ],
+    [
+      "employerControls.records.nationalReview.evidence",
+      ""
+    ],
+    [
+      "employerControls.records.nationalReview.action",
+      "Demonstration only; complete with real employer evidence."
+    ],
+    [
+      "employerControls.records.nationalReview.due",
+      ""
+    ],
+    [
+      "employerControls.state.stale",
+      false
+    ],
+    [
+      "employerControls.state.records.0.id",
+      "scope"
+    ],
+    [
+      "employerControls.state.records.0.articles.0",
+      1
+    ],
+    [
+      "employerControls.state.records.0.articles.1",
+      2
+    ],
+    [
+      "employerControls.state.records.0.articles.2",
+      3
+    ],
+    [
+      "employerControls.state.records.0.status",
+      "open"
+    ],
+    [
+      "employerControls.state.records.0.overdue",
+      false
+    ],
+    [
+      "employerControls.state.records.1.id",
+      "recruitment"
+    ],
+    [
+      "employerControls.state.records.1.articles.0",
+      5
+    ],
+    [
+      "employerControls.state.records.1.status",
+      "open"
+    ],
+    [
+      "employerControls.state.records.1.overdue",
+      false
+    ],
+    [
+      "employerControls.state.records.2.id",
+      "criteriaAccess"
+    ],
+    [
+      "employerControls.state.records.2.articles.0",
+      6
+    ],
+    [
+      "employerControls.state.records.2.status",
+      "open"
+    ],
+    [
+      "employerControls.state.records.2.overdue",
+      false
+    ],
+    [
+      "employerControls.state.records.3.id",
+      "payDisclosure"
+    ],
+    [
+      "employerControls.state.records.3.articles.0",
+      7
+    ],
+    [
+      "employerControls.state.records.3.status",
+      "open"
+    ],
+    [
+      "employerControls.state.records.3.overdue",
+      false
+    ],
+    [
+      "employerControls.state.records.4.id",
+      "accessibility"
+    ],
+    [
+      "employerControls.state.records.4.articles.0",
+      8
+    ],
+    [
+      "employerControls.state.records.4.status",
+      "open"
+    ],
+    [
+      "employerControls.state.records.4.overdue",
+      false
+    ],
+    [
+      "employerControls.state.records.5.id",
+      "distribution"
+    ],
+    [
+      "employerControls.state.records.5.articles.0",
+      9
+    ],
+    [
+      "employerControls.state.records.5.articles.1",
+      10
+    ],
+    [
+      "employerControls.state.records.5.articles.2",
+      29
+    ],
+    [
+      "employerControls.state.records.5.status",
+      "open"
+    ],
+    [
+      "employerControls.state.records.5.overdue",
+      false
+    ],
+    [
+      "employerControls.state.records.6.id",
+      "privacy"
+    ],
+    [
+      "employerControls.state.records.6.articles.0",
+      12
+    ],
+    [
+      "employerControls.state.records.6.status",
+      "open"
+    ],
+    [
+      "employerControls.state.records.6.overdue",
+      false
+    ],
+    [
+      "employerControls.state.records.7.id",
+      "socialDialogue"
+    ],
+    [
+      "employerControls.state.records.7.articles.0",
+      4
+    ],
+    [
+      "employerControls.state.records.7.articles.1",
+      10
+    ],
+    [
+      "employerControls.state.records.7.articles.2",
+      13
+    ],
+    [
+      "employerControls.state.records.7.articles.3",
+      30
+    ],
+    [
+      "employerControls.state.records.7.articles.4",
+      33
+    ],
+    [
+      "employerControls.state.records.7.status",
+      "open"
+    ],
+    [
+      "employerControls.state.records.7.overdue",
+      false
+    ],
+    [
+      "employerControls.state.records.8.id",
+      "remedies"
+    ],
+    [
+      "employerControls.state.records.8.articles.0",
+      14
+    ],
+    [
+      "employerControls.state.records.8.articles.1",
+      15
+    ],
+    [
+      "employerControls.state.records.8.articles.2",
+      16
+    ],
+    [
+      "employerControls.state.records.8.articles.3",
+      17
+    ],
+    [
+      "employerControls.state.records.8.articles.4",
+      18
+    ],
+    [
+      "employerControls.state.records.8.articles.5",
+      19
+    ],
+    [
+      "employerControls.state.records.8.articles.6",
+      20
+    ],
+    [
+      "employerControls.state.records.8.articles.7",
+      21
+    ],
+    [
+      "employerControls.state.records.8.articles.8",
+      22
+    ],
+    [
+      "employerControls.state.records.8.articles.9",
+      23
+    ],
+    [
+      "employerControls.state.records.8.articles.10",
+      26
+    ],
+    [
+      "employerControls.state.records.8.status",
+      "open"
+    ],
+    [
+      "employerControls.state.records.8.overdue",
+      false
+    ],
+    [
+      "employerControls.state.records.9.id",
+      "procurement"
+    ],
+    [
+      "employerControls.state.records.9.articles.0",
+      24
+    ],
+    [
+      "employerControls.state.records.9.status",
+      "open"
+    ],
+    [
+      "employerControls.state.records.9.overdue",
+      false
+    ],
+    [
+      "employerControls.state.records.10.id",
+      "retaliation"
+    ],
+    [
+      "employerControls.state.records.10.articles.0",
+      25
+    ],
+    [
+      "employerControls.state.records.10.status",
+      "open"
+    ],
+    [
+      "employerControls.state.records.10.overdue",
+      false
+    ],
+    [
+      "employerControls.state.records.11.id",
+      "nationalReview"
+    ],
+    [
+      "employerControls.state.records.11.articles.0",
+      11
+    ],
+    [
+      "employerControls.state.records.11.articles.1",
+      27
+    ],
+    [
+      "employerControls.state.records.11.articles.2",
+      28
+    ],
+    [
+      "employerControls.state.records.11.articles.3",
+      29
+    ],
+    [
+      "employerControls.state.records.11.articles.4",
+      32
+    ],
+    [
+      "employerControls.state.records.11.articles.5",
+      34
+    ],
+    [
+      "employerControls.state.records.11.status",
+      "open"
+    ],
+    [
+      "employerControls.state.records.11.overdue",
+      false
+    ],
+    [
+      "employerControls.state.missing.0",
+      "scope"
+    ],
+    [
+      "employerControls.state.missing.1",
+      "recruitment"
+    ],
+    [
+      "employerControls.state.missing.2",
+      "criteriaAccess"
+    ],
+    [
+      "employerControls.state.missing.3",
+      "payDisclosure"
+    ],
+    [
+      "employerControls.state.missing.4",
+      "accessibility"
+    ],
+    [
+      "employerControls.state.missing.5",
+      "distribution"
+    ],
+    [
+      "employerControls.state.missing.6",
+      "privacy"
+    ],
+    [
+      "employerControls.state.missing.7",
+      "socialDialogue"
+    ],
+    [
+      "employerControls.state.missing.8",
+      "remedies"
+    ],
+    [
+      "employerControls.state.missing.9",
+      "procurement"
+    ],
+    [
+      "employerControls.state.missing.10",
+      "retaliation"
+    ],
+    [
+      "employerControls.state.missing.11",
+      "nationalReview"
+    ],
+    [
+      "employerControls.state.independentlyVerified",
+      false
+    ],
+    [
+      "employerControls.articles.0.article",
+      1
+    ],
+    [
+      "employerControls.articles.0.de",
+      "Ziel"
+    ],
+    [
+      "employerControls.articles.0.sl",
+      "Namen"
+    ],
+    [
+      "employerControls.articles.0.role",
+      "framework"
+    ],
+    [
+      "employerControls.articles.0.controls.0",
+      "scope"
+    ],
+    [
+      "employerControls.articles.1.article",
+      2
+    ],
+    [
+      "employerControls.articles.1.de",
+      "Anwendungsbereich"
+    ],
+    [
+      "employerControls.articles.1.sl",
+      "Področje uporabe"
+    ],
+    [
+      "employerControls.articles.1.role",
+      "framework"
+    ],
+    [
+      "employerControls.articles.1.controls.0",
+      "scope"
+    ],
+    [
+      "employerControls.articles.2.article",
+      3
+    ],
+    [
+      "employerControls.articles.2.de",
+      "Begriffe"
+    ],
+    [
+      "employerControls.articles.2.sl",
+      "Opredelitve"
+    ],
+    [
+      "employerControls.articles.2.role",
+      "framework"
+    ],
+    [
+      "employerControls.articles.2.controls.0",
+      "scope"
+    ],
+    [
+      "employerControls.articles.3.article",
+      4
+    ],
+    [
+      "employerControls.articles.3.de",
+      "Gleiche und gleichwertige Arbeit"
+    ],
+    [
+      "employerControls.articles.3.sl",
+      "Enako in enakovredno delo"
+    ],
+    [
+      "employerControls.articles.3.role",
+      "employer"
+    ],
+    [
+      "employerControls.articles.3.controls.0",
+      "socialDialogue"
+    ],
+    [
+      "employerControls.articles.4.article",
+      5
+    ],
+    [
+      "employerControls.articles.4.de",
+      "Einstellung"
+    ],
+    [
+      "employerControls.articles.4.sl",
+      "Zaposlovanje"
+    ],
+    [
+      "employerControls.articles.4.role",
+      "employer"
+    ],
+    [
+      "employerControls.articles.4.controls.0",
+      "recruitment"
+    ],
+    [
+      "employerControls.articles.5.article",
+      6
+    ],
+    [
+      "employerControls.articles.5.de",
+      "Entgeltkriterien"
+    ],
+    [
+      "employerControls.articles.5.sl",
+      "Merila za plače"
+    ],
+    [
+      "employerControls.articles.5.role",
+      "employer"
+    ],
+    [
+      "employerControls.articles.5.controls.0",
+      "criteriaAccess"
+    ],
+    [
+      "employerControls.articles.6.article",
+      7
+    ],
+    [
+      "employerControls.articles.6.de",
+      "Auskunftsrecht"
+    ],
+    [
+      "employerControls.articles.6.sl",
+      "Pravica do informacij"
+    ],
+    [
+      "employerControls.articles.6.role",
+      "employer"
+    ],
+    [
+      "employerControls.articles.6.controls.0",
+      "payDisclosure"
+    ],
+    [
+      "employerControls.articles.7.article",
+      8
+    ],
+    [
+      "employerControls.articles.7.de",
+      "Barrierefreiheit"
+    ],
+    [
+      "employerControls.articles.7.sl",
+      "Dostopnost"
+    ],
+    [
+      "employerControls.articles.7.role",
+      "employer"
+    ],
+    [
+      "employerControls.articles.7.controls.0",
+      "accessibility"
+    ],
+    [
+      "employerControls.articles.8.article",
+      9
+    ],
+    [
+      "employerControls.articles.8.de",
+      "Entgeltbericht"
+    ],
+    [
+      "employerControls.articles.8.sl",
+      "Poročanje o plačah"
+    ],
+    [
+      "employerControls.articles.8.role",
+      "employer"
+    ],
+    [
+      "employerControls.articles.8.controls.0",
+      "distribution"
+    ],
+    [
+      "employerControls.articles.9.article",
+      10
+    ],
+    [
+      "employerControls.articles.9.de",
+      "Gemeinsame Entgeltbewertung"
+    ],
+    [
+      "employerControls.articles.9.sl",
+      "Skupna ocena plač"
+    ],
+    [
+      "employerControls.articles.9.role",
+      "employer"
+    ],
+    [
+      "employerControls.articles.9.controls.0",
+      "distribution"
+    ],
+    [
+      "employerControls.articles.9.controls.1",
+      "socialDialogue"
+    ],
+    [
+      "employerControls.articles.10.article",
+      11
+    ],
+    [
+      "employerControls.articles.10.de",
+      "Unterstützung kleinerer Arbeitgeber"
+    ],
+    [
+      "employerControls.articles.10.sl",
+      "Podpora manjšim delodajalcem"
+    ],
+    [
+      "employerControls.articles.10.role",
+      "institutional"
+    ],
+    [
+      "employerControls.articles.10.controls.0",
+      "nationalReview"
+    ],
+    [
+      "employerControls.articles.11.article",
+      12
+    ],
+    [
+      "employerControls.articles.11.de",
+      "Datenschutz"
+    ],
+    [
+      "employerControls.articles.11.sl",
+      "Varstvo podatkov"
+    ],
+    [
+      "employerControls.articles.11.role",
+      "employer"
+    ],
+    [
+      "employerControls.articles.11.controls.0",
+      "privacy"
+    ],
+    [
+      "employerControls.articles.12.article",
+      13
+    ],
+    [
+      "employerControls.articles.12.de",
+      "Sozialer Dialog"
+    ],
+    [
+      "employerControls.articles.12.sl",
+      "Socialni dialog"
+    ],
+    [
+      "employerControls.articles.12.role",
+      "employer"
+    ],
+    [
+      "employerControls.articles.12.controls.0",
+      "socialDialogue"
+    ],
+    [
+      "employerControls.articles.13.article",
+      14
+    ],
+    [
+      "employerControls.articles.13.de",
+      "Rechtsschutz"
+    ],
+    [
+      "employerControls.articles.13.sl",
+      "Varstvo pravic"
+    ],
+    [
+      "employerControls.articles.13.role",
+      "enforcement"
+    ],
+    [
+      "employerControls.articles.13.controls.0",
+      "remedies"
+    ],
+    [
+      "employerControls.articles.14.article",
+      15
+    ],
+    [
+      "employerControls.articles.14.de",
+      "Verfahren im Namen Betroffener"
+    ],
+    [
+      "employerControls.articles.14.sl",
+      "Postopki v imenu delavcev"
+    ],
+    [
+      "employerControls.articles.14.role",
+      "enforcement"
+    ],
+    [
+      "employerControls.articles.14.controls.0",
+      "remedies"
+    ],
+    [
+      "employerControls.articles.15.article",
+      16
+    ],
+    [
+      "employerControls.articles.15.de",
+      "Entschädigung"
+    ],
+    [
+      "employerControls.articles.15.sl",
+      "Odškodnina"
+    ],
+    [
+      "employerControls.articles.15.role",
+      "enforcement"
+    ],
+    [
+      "employerControls.articles.15.controls.0",
+      "remedies"
+    ],
+    [
+      "employerControls.articles.16.article",
+      17
+    ],
+    [
+      "employerControls.articles.16.de",
+      "Weitere Abhilfe"
+    ],
+    [
+      "employerControls.articles.16.sl",
+      "Druga pravna sredstva"
+    ],
+    [
+      "employerControls.articles.16.role",
+      "enforcement"
+    ],
+    [
+      "employerControls.articles.16.controls.0",
+      "remedies"
+    ],
+    [
+      "employerControls.articles.17.article",
+      18
+    ],
+    [
+      "employerControls.articles.17.de",
+      "Beweislast"
+    ],
+    [
+      "employerControls.articles.17.sl",
+      "Dokazno breme"
+    ],
+    [
+      "employerControls.articles.17.role",
+      "enforcement"
+    ],
+    [
+      "employerControls.articles.17.controls.0",
+      "remedies"
+    ],
+    [
+      "employerControls.articles.18.article",
+      19
+    ],
+    [
+      "employerControls.articles.18.de",
+      "Nachweis gleicher/gleichwertiger Arbeit"
+    ],
+    [
+      "employerControls.articles.18.sl",
+      "Dokazovanje enakega/enakovrednega dela"
+    ],
+    [
+      "employerControls.articles.18.role",
+      "enforcement"
+    ],
+    [
+      "employerControls.articles.18.controls.0",
+      "remedies"
+    ],
+    [
+      "employerControls.articles.19.article",
+      20
+    ],
+    [
+      "employerControls.articles.19.de",
+      "Zugang zu Beweismitteln"
+    ],
+    [
+      "employerControls.articles.19.sl",
+      "Dostop do dokazov"
+    ],
+    [
+      "employerControls.articles.19.role",
+      "enforcement"
+    ],
+    [
+      "employerControls.articles.19.controls.0",
+      "remedies"
+    ],
+    [
+      "employerControls.articles.20.article",
+      21
+    ],
+    [
+      "employerControls.articles.20.de",
+      "Verjährung"
+    ],
+    [
+      "employerControls.articles.20.sl",
+      "Zastaranje"
+    ],
+    [
+      "employerControls.articles.20.role",
+      "enforcement"
+    ],
+    [
+      "employerControls.articles.20.controls.0",
+      "remedies"
+    ],
+    [
+      "employerControls.articles.21.article",
+      22
+    ],
+    [
+      "employerControls.articles.21.de",
+      "Verfahrenskosten"
+    ],
+    [
+      "employerControls.articles.21.sl",
+      "Stroški postopka"
+    ],
+    [
+      "employerControls.articles.21.role",
+      "enforcement"
+    ],
+    [
+      "employerControls.articles.21.controls.0",
+      "remedies"
+    ],
+    [
+      "employerControls.articles.22.article",
+      23
+    ],
+    [
+      "employerControls.articles.22.de",
+      "Sanktionen"
+    ],
+    [
+      "employerControls.articles.22.sl",
+      "Sankcije"
+    ],
+    [
+      "employerControls.articles.22.role",
+      "enforcement"
+    ],
+    [
+      "employerControls.articles.22.controls.0",
+      "remedies"
+    ],
+    [
+      "employerControls.articles.23.article",
+      24
+    ],
+    [
+      "employerControls.articles.23.de",
+      "Öffentliche Aufträge"
+    ],
+    [
+      "employerControls.articles.23.sl",
+      "Javna naročila"
+    ],
+    [
+      "employerControls.articles.23.role",
+      "employer"
+    ],
+    [
+      "employerControls.articles.23.controls.0",
+      "procurement"
+    ],
+    [
+      "employerControls.articles.24.article",
+      25
+    ],
+    [
+      "employerControls.articles.24.de",
+      "Schutz vor Benachteiligung"
+    ],
+    [
+      "employerControls.articles.24.sl",
+      "Zaščita pred povračilnimi ukrepi"
+    ],
+    [
+      "employerControls.articles.24.role",
+      "employer"
+    ],
+    [
+      "employerControls.articles.24.controls.0",
+      "retaliation"
+    ],
+    [
+      "employerControls.articles.25.article",
+      26
+    ],
+    [
+      "employerControls.articles.25.de",
+      "Verhältnis zur Richtlinie 2006/54/EG"
+    ],
+    [
+      "employerControls.articles.25.sl",
+      "Razmerje do Direktive 2006/54/ES"
+    ],
+    [
+      "employerControls.articles.25.role",
+      "enforcement"
+    ],
+    [
+      "employerControls.articles.25.controls.0",
+      "remedies"
+    ],
+    [
+      "employerControls.articles.26.article",
+      27
+    ],
+    [
+      "employerControls.articles.26.de",
+      "Schutzniveau"
+    ],
+    [
+      "employerControls.articles.26.sl",
+      "Raven varstva"
+    ],
+    [
+      "employerControls.articles.26.role",
+      "institutional"
+    ],
+    [
+      "employerControls.articles.26.controls.0",
+      "nationalReview"
+    ],
+    [
+      "employerControls.articles.27.article",
+      28
+    ],
+    [
+      "employerControls.articles.27.de",
+      "Gleichbehandlungsstellen"
+    ],
+    [
+      "employerControls.articles.27.sl",
+      "Organi za enakost"
+    ],
+    [
+      "employerControls.articles.27.role",
+      "institutional"
+    ],
+    [
+      "employerControls.articles.27.controls.0",
+      "nationalReview"
+    ],
+    [
+      "employerControls.articles.28.article",
+      29
+    ],
+    [
+      "employerControls.articles.28.de",
+      "Überwachung und Sensibilisierung"
+    ],
+    [
+      "employerControls.articles.28.sl",
+      "Spremljanje in ozaveščanje"
+    ],
+    [
+      "employerControls.articles.28.role",
+      "institutional"
+    ],
+    [
+      "employerControls.articles.28.controls.0",
+      "distribution"
+    ],
+    [
+      "employerControls.articles.28.controls.1",
+      "nationalReview"
+    ],
+    [
+      "employerControls.articles.29.article",
+      30
+    ],
+    [
+      "employerControls.articles.29.de",
+      "Tarifverhandlungen und kollektive Maßnahmen"
+    ],
+    [
+      "employerControls.articles.29.sl",
+      "Kolektivna pogajanja in ukrepanje"
+    ],
+    [
+      "employerControls.articles.29.role",
+      "employer"
+    ],
+    [
+      "employerControls.articles.29.controls.0",
+      "socialDialogue"
+    ],
+    [
+      "employerControls.articles.30.article",
+      31
+    ],
+    [
+      "employerControls.articles.30.de",
+      "Statistik"
+    ],
+    [
+      "employerControls.articles.30.sl",
+      "Statistika"
+    ],
+    [
+      "employerControls.articles.30.role",
+      "institutional"
+    ],
+    [
+      "employerControls.articles.31.article",
+      32
+    ],
+    [
+      "employerControls.articles.31.de",
+      "Information"
+    ],
+    [
+      "employerControls.articles.31.sl",
+      "Obveščanje"
+    ],
+    [
+      "employerControls.articles.31.role",
+      "institutional"
+    ],
+    [
+      "employerControls.articles.31.controls.0",
+      "nationalReview"
+    ],
+    [
+      "employerControls.articles.32.article",
+      33
+    ],
+    [
+      "employerControls.articles.32.de",
+      "Durchführung"
+    ],
+    [
+      "employerControls.articles.32.sl",
+      "Izvajanje"
+    ],
+    [
+      "employerControls.articles.32.role",
+      "institutional"
+    ],
+    [
+      "employerControls.articles.32.controls.0",
+      "socialDialogue"
+    ],
+    [
+      "employerControls.articles.33.article",
+      34
+    ],
+    [
+      "employerControls.articles.33.de",
+      "Umsetzung"
+    ],
+    [
+      "employerControls.articles.33.sl",
+      "Prenos"
+    ],
+    [
+      "employerControls.articles.33.role",
+      "institutional"
+    ],
+    [
+      "employerControls.articles.33.controls.0",
+      "nationalReview"
+    ],
+    [
+      "employerControls.articles.34.article",
+      35
+    ],
+    [
+      "employerControls.articles.34.de",
+      "Berichterstattung und Überprüfung"
+    ],
+    [
+      "employerControls.articles.34.sl",
+      "Poročanje in pregled"
+    ],
+    [
+      "employerControls.articles.34.role",
+      "institutional"
+    ],
+    [
+      "employerControls.articles.35.article",
+      36
+    ],
+    [
+      "employerControls.articles.35.de",
+      "Inkrafttreten"
+    ],
+    [
+      "employerControls.articles.35.sl",
+      "Začetek veljavnosti"
+    ],
+    [
+      "employerControls.articles.35.role",
+      "institutional"
+    ],
+    [
+      "employerControls.articles.36.article",
+      37
+    ],
+    [
+      "employerControls.articles.36.de",
+      "Adressaten"
+    ],
+    [
+      "employerControls.articles.36.sl",
+      "Naslovniki"
+    ],
+    [
+      "employerControls.articles.36.role",
+      "institutional"
+    ]
+  ]
+}

@@ -2,6 +2,7 @@ import nodemailer from 'nodemailer';
 
 // Transports share one interface: send({to,subject,text}).
 export class MemoryMailer {
+  deliveryMode = 'memory';
   outbox = [];
   async send(message) { this.outbox.push(structuredClone(message)); }
 }
@@ -9,13 +10,14 @@ export class ConsoleMailer {
   async send({ to, subject, text }) { console.log(`[mail] to=${to} subject="${subject}"\n${text}`); }
 }
 export class SmtpMailer {
+  deliveryMode = 'smtp';
   constructor(url, from) { this.transport = nodemailer.createTransport(url); this.from = from; }
-  async send({ to, subject, text }) { await this.transport.sendMail({ from: this.from, to, subject, text }); }
+  async send({ to, subject, text, html }) { await this.transport.sendMail({ from: this.from, to, subject, text, html }); }
 }
 export function runtimeMailer({ url, from, production }) {
   if (url) return new SmtpMailer(url, from || 'Equitensa <no-reply@equitensa.de>');
-  if (production) throw new Error('SMTP_URL_REQUIRED');
-  return new ConsoleMailer();
+  if (production) return {async send(){throw new Error('SMTP_NOT_CONFIGURED');}};
+  return new MemoryMailer();
 }
 
 const copy = {

@@ -7,8 +7,9 @@ import { controlAudit } from './control-store.js';
 import { paymentDefaults, paymentView, paymentDraft, verifyPayment } from './payment-config.js';
 import { plans } from './billing.js';
 import { googleAdminRoutes } from './google-config.js';
+import { emailAdminRoutes } from './email-platform.js';
 
-export function adminRoutes(app,{control,store,billing,demo,secure,stripeFetch,requireMfa=secure}) {
+export function adminRoutes(app,{control,store,billing,demo,secure,stripeFetch,emailPlatform,requireMfa=secure}) {
   const router=express.Router();
   const loginLimit=rateLimit({windowMs:15*60_000,limit:10,standardHeaders:'draft-8',legacyHeaders:false});
   const checkedOwner=async(req,res,next)=>{
@@ -30,7 +31,7 @@ export function adminRoutes(app,{control,store,billing,demo,secure,stripeFetch,r
   });
   router.post('/auth/login',loginLimit,async(req,res)=>{
     if(typeof req.body.email!=='string' || req.body.email.length>255 || typeof req.body.password!=='string' || req.body.password.length>128 || (req.body.code!==undefined && (typeof req.body.code!=='string' || req.body.code.length>40)))return res.status(400).json({error:'INVALID_OWNER_LOGIN'});
-    let result;try{result=await loginOwner(control,req.body.email,req.body.password,req.body.code);}catch(e){if(e.message==='INVALID_OWNER_LOGIN')return res.status(401).json({error:e.message});throw e;}
+    let result;try{result=await loginOwner(control,req.body.email,req.body.password,req.body.code);}catch(e){if(['INVALID_OWNER_LOGIN','OWNER_LOGIN_MFA_REQUIRED'].includes(e.message))return res.status(401).json({error:e.message});throw e;}
     const old=ownerToken(req);if(old)await control.mutate(s=>{delete s.sessions[hashToken(old)];});
     res.cookie('equitensa_owner',result.token,ownerCookie(secure));res.json({owner:result.owner});
   });
@@ -66,6 +67,7 @@ export function adminRoutes(app,{control,store,billing,demo,secure,stripeFetch,r
   // ADMIN_REQUIRE_MFA=false makes it optional; enrolled owners are still challenged at login.
   router.use((req,res,next)=>requireMfa&&!req.owner.mfaSecret?res.status(403).json({error:'OWNER_MFA_REQUIRED'}):next());
   googleAdminRoutes(router,{control,demo,editable});
+  if(emailPlatform)emailAdminRoutes(router,{platform:emailPlatform,control,editable,demo});
   router.get('/overview',async(req,res)=>{
     const [state,overview]=await Promise.all([control.read(),store.adminOverview()]);
     const settings=state.settings||paymentDefaults(billing,demo);
@@ -127,6 +129,7 @@ export function adminRoutes(app,{control,store,billing,demo,secure,stripeFetch,r
   router.use((req,res)=>res.status(404).json({error:'NOT_FOUND'}));
   router.use((error,req,res,next)=>{
     const codes=['INVALID_OWNER','EMAIL_EXISTS','INVALID_PAYMENT_SETTINGS','PAYMENT_MODE_UNAVAILABLE','INVALID_RETURN_ORIGIN','STRIPE_SETTINGS_INCOMPLETE','DUPLICATE_STRIPE_PRICE','STRIPE_CONNECTION_FAILED','STRIPE_PRICE_MISMATCH','STRIPE_ACCOUNT_NOT_READY','STRIPE_ACCOUNT_LOCKED','SETTINGS_CHANGED','ROTATION_CONFIRMATION_REQUIRED','INVALID_MFA_CODE','OWNER_NOT_FOUND','LAST_OWNER'];
+    if(['EMAIL_SETTINGS_CHANGED','INVALID_EMAIL_SETTINGS','INVALID_EMAIL_TEMPLATE','SMTP_SETTINGS_INCOMPLETE','SMTP_CONNECTION_FAILED','EMAIL_DELIVERY_FAILED'].includes(error.message))return res.status(error.message==='EMAIL_SETTINGS_CHANGED'?409:error.message==='SMTP_CONNECTION_FAILED'||error.message==='EMAIL_DELIVERY_FAILED'?502:400).json({error:error.message});
     if(!codes.includes(error.message) && !['INVALID_OWNER_SETUP','INVALID_GOOGLE_SETTINGS','INVALID_GOOGLE_REDIRECT','GOOGLE_SETTINGS_INCOMPLETE'].includes(error.message))return next(error);
     const status=['SETTINGS_CHANGED','LAST_OWNER','ROTATION_CONFIRMATION_REQUIRED'].includes(error.message)?409:error.message==='STRIPE_CONNECTION_FAILED'?502:400;
     res.status(status).json({error:error.message});

@@ -1,3 +1,4 @@
+import { completedRemediation } from './helpers.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { analyze, REVIEW_THRESHOLD_PERCENT } from '../server/pay.js';
@@ -83,7 +84,7 @@ test('a protected category with an alarm must be explained before the report can
   const analysis = analyze(team('Small', 3, 3, { womenPay: 80 }));
   const snapshot = { id: 's1', rows: [] };
   const categories = { Small: { skills: 'x', effort: 'x', responsibility: 'x', conditions: 'x' } };
-  const base = { snapshotId: 's1', profile: { legalName: 'Acme', headcount: 200, payrollComplete: true }, classification: categories, approval: { manager: 'CEO', representatives: 'Works council', confirmed: true, consulted: true } };
+  const base = { snapshotId: 's1', profile: { legalName: 'Acme', headcount: 200, payrollComplete: true }, criteriaAgreement: { status: 'agreed' }, classification: categories, approval: { manager: 'CEO', representatives: 'Works council', confirmed: true, consulted: true } };
   const open = readiness({ ...base, reviews: { Small: {} } }, analysis, snapshot);
   assert.equal(open.checks.find(c => c.id === 'reviews').done, false);
   const explained = readiness({ ...base, reviews: { Small: { explanation: 'Seniority differs', justified: true } } }, analysis, snapshot);
@@ -92,7 +93,7 @@ test('a protected category with an alarm must be explained before the report can
 
 test('six month remediation window runs from the actual submission date', () => {
   const analysis = analyze(team('Gap', 6, 6, { womenPay: 85 }));
-  const snapshot = { id: 's1', rows: [] };
+  const snapshot = { id: 's1', reporting_year: 2026, rows: [] };
   const workflow = reportingDate => ({ snapshotId: 's1', reportingDate, profile: { headcount: 200 }, classification: {}, reviews: { Gap: {} } });
   const past = readiness(workflow('2020-01-31'), analysis, snapshot).assessments[0];
   assert.equal(past.deadline, '2020-07-31');
@@ -100,7 +101,7 @@ test('six month remediation window runs from the actual submission date', () => 
   const future = readiness(workflow('2999-01-31'), analysis, snapshot).assessments[0];
   assert.equal(future.deadline, '2999-07-31');
   assert.equal(future.jointAssessmentRequired, false, 'still inside the six months');
-  const remedied = readiness({ ...workflow('2020-01-31'), reviews: { Gap: { remedied: true } } }, analysis, snapshot).assessments[0];
+  const remedied = readiness({ ...workflow('2020-01-31'), reviews: { Gap: { remedied: true, proof: completedRemediation('s1') } } }, analysis, snapshot).assessments[0];
   assert.equal(remedied.jointAssessmentRequired, false);
   const justified = readiness({ ...workflow('2020-01-31'), reviews: { Gap: { justified: true } } }, analysis, snapshot).assessments[0];
   assert.equal(justified.jointAssessmentRequired, false);

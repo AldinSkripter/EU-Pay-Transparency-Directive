@@ -1,0 +1,9 @@
+import React from 'react';
+import {Globe2,ArrowUpRight} from 'lucide-react';
+import {financeCountries} from '../shared/finance-country';
+export default function FinanceCountryStatus({country,L,onSettings}){
+ const config=financeCountries[country];
+ const details=Object.fromEntries(['DE','AT','SI'].map(code=>[code,L('Das Firmenland steuert Pflichtfelder, unterstützte Steuersätze und strukturierte Testexporte. Formatvalidierung ersetzt keine Prüfung aller steuerlichen Geschäftsfälle.','Država podjetja določa obvezna polja, podprte davčne stopnje in strukturirane testne izvoze. Preverjanje oblike ne nadomesti preverjanja vseh davčnih poslovnih primerov.')]));
+ const sources={DE:'https://www.bundesfinanzministerium.de/Content/DE/FAQ/e-rechnung.html',AT:'https://www.usp.gv.at/themen/steuern-finanzen/umsatzsteuer-ueberblick/weitere-informationen-zur-umsatzsteuer/vorsteuerabzug-und-rechnung/formerfordernisse.html',SI:'https://www.gov.si/novice/2025-10-23-drzavni-zbor-sprejel-zakon-o-izmenjavi-elektronskih-racunov-in-drugih-elektronskih-dokumentov/'};
+ return <section className="fs-country-status"><Globe2 size={23}/><div><span className="fs-kicker">{L('FIRMENLAND & FUNKTIONSUMFANG','DRŽAVA PODJETJA IN OBSEG')}</span><h3>{config.name} · {config.rule}</h3><p>{details[country]}</p><small>{L('Keine Freigabe für grenzüberschreitende Geschäfte, Sondersteuerfälle oder öffentliche Auftraggeber. Keine produktive Landesfreigabe.','Čezmejni posli, posebni davčni primeri in javni naročniki še niso omogočeni. Ni produkcijske odobritve za državo.')}</small><div><button onClick={onSettings}>{L('Firmendaten prüfen','Preveri podatke podjetja')}<ArrowUpRight size={14}/></button><a href={sources[country]} target="_blank" rel="noreferrer">{L('Amtliche Grundlage','Uradna podlaga')}<ArrowUpRight size={14}/></a></div></div></section>;
+}

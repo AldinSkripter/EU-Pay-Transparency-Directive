@@ -4,19 +4,19 @@ import {plans,recommendPlan,planRange,annualSavingsPercent,obligation,upcomingDe
 import {reportingSchedule} from '../server/pay.js';
 import {reportingPlan} from '../server/regulatory.js';
 
-test('package prices: cheapest annual is 899 and every annual price beats twelve months by about a quarter',()=>{
-  assert.deepEqual(plans.map(p=>[p.id,p.monthly,p.annual,p.limit]),[['prepare',99,899,250],['growth',199,1799,1000],['scale',399,3599,2500]]);
-  for(const plan of plans){const saving=annualSavingsPercent(plan);assert.ok(saving>=24&&saving<=25,`${plan.id} saves ${saving}%`);assert.ok(plan.annual<plan.monthly*12);}
+test('package prices: new prices use the same annual total for monthly and annual billing',()=>{
+  assert.deepEqual(plans.map(p=>[p.id,p.monthly,p.annual,p.limit]),[['prepare',119,1428,249],['growth',249,2988,999],['scale',499,5988,2500]]);
+  for(const plan of plans){const saving=annualSavingsPercent(plan);assert.equal(saving,0);assert.equal(plan.annual,plan.monthly*12);}
   assert.ok(plans.every((p,i)=>!i||(p.monthly>plans[i-1].monthly&&p.annual>plans[i-1].annual&&p.limit>plans[i-1].limit)));
 });
 
 test('size recommendation picks the smallest package that covers the headcount',()=>{
   const pick=n=>recommendPlan(n)?.id??null;
-  assert.deepEqual([1,99,250].map(pick),['prepare','prepare','prepare']);
-  assert.deepEqual([251,1000].map(pick),['growth','growth']);
-  assert.deepEqual([1001,2500].map(pick),['scale','scale']);
+  assert.deepEqual([1,99,249].map(pick),['prepare','prepare','prepare']);
+  assert.deepEqual([250,999].map(pick),['growth','growth']);
+  assert.deepEqual([1000,2500].map(pick),['scale','scale']);
   assert.deepEqual([2501,0,-5,1.5,NaN].map(pick),[null,null,null,null,null]);
-  assert.deepEqual(plans.map(p=>planRange(p)),[{from:1,to:250},{from:251,to:1000},{from:1001,to:2500}]);
+  assert.deepEqual(plans.map(p=>planRange(p)),[{from:1,to:249},{from:250,to:999},{from:1000,to:2500}]);
 });
 
 test('Directive 2023/970 Art. 9(2)-(5) thresholds and first deadlines',()=>{

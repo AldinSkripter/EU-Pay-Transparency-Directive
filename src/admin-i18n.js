@@ -15,6 +15,13 @@ export const saveLang=lang=>{try{localStorage.setItem(STORAGE,lang);}catch{}};
 export const makeT=lang=>(key,vars={})=>(lang==='de'?de[key]??key:key).replace(/\{(\w+)\}/g,(match,name)=>vars[name]??match);
 
 export const errorMessages={
+  EMAIL_SETTINGS_CHANGED:'Email settings changed. Reload before saving.',
+  INVALID_EMAIL_SETTINGS:'Check the sender, SMTP settings and brand colors.',
+  INVALID_EMAIL_TEMPLATE:'Complete every template field for DE, AT and SI.',
+  SMTP_SETTINGS_INCOMPLETE:'Enter the SMTP host, username and password.',
+  SMTP_CONNECTION_FAILED:'SMTP connection failed. Check the host, port, TLS and credentials.',
+  EMAIL_DELIVERY_FAILED:'Email delivery failed. Check the SMTP settings and delivery log.',
+  OWNER_LOGIN_MFA_REQUIRED:'This account has two-factor sign-in enabled. Enter an authenticator or recovery code.',
   INVALID_GOOGLE_SETTINGS:'Check the Google client ID, secret and redirect addresses.',
   INVALID_GOOGLE_REDIRECT:'Only exact HTTPS Equitensa redirect addresses are allowed, plus local addresses in a test environment.',
   GOOGLE_SETTINGS_INCOMPLETE:'To enable Google sign-in, enter the client ID, client secret and redirect addresses.',
@@ -45,6 +52,12 @@ export const errorMessages={
 export const fallbackError='The action was not completed. Try again or check the server configuration.';
 
 const deErrors={
+  'Email settings changed. Reload before saving.':'E-Mail-Einstellungen wurden geändert. Laden Sie die Seite vor dem Speichern neu.',
+  'Check the sender, SMTP settings and brand colors.':'Prüfen Sie Absender, SMTP-Einstellungen und Markenfarben.',
+  'Complete every template field for DE, AT and SI.':'Füllen Sie alle Vorlagenfelder für DE, AT und SI aus.',
+  'Enter the SMTP host, username and password.':'Geben Sie SMTP-Host, Benutzername und Passwort ein.',
+  'SMTP connection failed. Check the host, port, TLS and credentials.':'SMTP-Verbindung fehlgeschlagen. Prüfen Sie Host, Port, TLS und Zugangsdaten.',
+  'Email delivery failed. Check the SMTP settings and delivery log.':'E-Mail-Versand fehlgeschlagen. Prüfen Sie SMTP-Einstellungen und Versandprotokoll.',
   // Errors
   'Check the Google client ID, secret and redirect addresses.':'Prüfen Sie Google-Client-ID, Secret und Weiterleitungsadressen.',
   'Only exact HTTPS Equitensa redirect addresses are allowed, plus local addresses in a test environment.':'Erlaubt sind nur exakte HTTPS-Weiterleitungsadressen von Equitensa sowie lokale Adressen in einer Testumgebung.',
@@ -74,4 +87,4 @@ const deErrors={
   'To block a company, enter a reason of at least five characters.':'Zum Sperren eines Unternehmens geben Sie einen Grund mit mindestens fünf Zeichen ein.',
   'The action was not completed. Try again or check the server configuration.':'Die Aktion wurde nicht abgeschlossen. Versuchen Sie es erneut oder prüfen Sie die Serverkonfiguration.',
 };
-export const de={...deErrors,...deUi};
+export const de={...deErrors,...deUi,'This account has two-factor sign-in enabled. Enter an authenticator or recovery code.':'Für dieses Konto ist die Zwei-Faktor-Anmeldung aktiviert. Geben Sie einen Authenticator- oder Wiederherstellungscode ein.'};

@@ -1,3 +1,4 @@
+import {payImportLimits} from '../shared/pay-import-limits.js';
 import { parentPort, workerData } from 'node:worker_threads';
 import * as XLSX from 'xlsx';
 import yauzl from 'yauzl';
@@ -35,7 +36,7 @@ function scanZip(bytes) {
       zip.on('end',()=>resolve({names,mimetype}));
       zip.on('entry',entry=> {
         const name=entry.fileName;
-        if(++count>1000 || entry.uncompressedSize>32*MB || total+entry.uncompressedSize>32*MB || (entry.generalPurposeBitFlag&1) || name.length>255 || /[\u0000-\u001f]/.test(name) || (entry.externalFileAttributes>>>16&0xf000)===0xa000) return stop(new Error('UNSAFE_WORKBOOK'));
+        if(++count>1000 || entry.uncompressedSize>payImportLimits.expandedArchiveBytes || total+entry.uncompressedSize>payImportLimits.expandedArchiveBytes || (entry.generalPurposeBitFlag&1) || name.length>255 || /[\u0000-\u001f]/.test(name) || (entry.externalFileAttributes>>>16&0xf000)===0xa000) return stop(new Error('UNSAFE_WORKBOOK'));
         names.push(name);
         if(name.endsWith('/'))return zip.readEntry();
         zip.openReadStream(entry,(error,stream)=> {
@@ -43,7 +44,7 @@ function scanZip(bytes) {
           stream.on('error',stop);
           stream.on('data',chunk=>{
             total+=chunk.length;
-            if(total>32*MB){stream.destroy();stop(new Error('UNSAFE_WORKBOOK'));}
+            if(total>payImportLimits.expandedArchiveBytes){stream.destroy();stop(new Error('UNSAFE_WORKBOOK'));}
             else if(name==='mimetype' && mimetype.length<200)mimetype+=chunk.toString('latin1');
           });
           stream.on('end',()=>zip.readEntry());
@@ -226,7 +227,7 @@ function tryJson(text) {
 }
 
 // ---- Dispatcher ------------------------------------------------------------------------------------------
-async function parseBytes(bytes,options,depth) {
+export async function parseBytes(bytes,options,depth) {
   if(bytes.subarray(0,2).toString()==='PK') {
     const scan=await scanZip(bytes),kind=classifyZip(scan);
     if(kind==='container') {
@@ -235,7 +236,7 @@ async function parseBytes(bytes,options,depth) {
       if(!files.length)fail('UNSUPPORTED_FILE_FORMAT');
       const entry=options.zipEntry || (files.length===1?files[0]:null);
       if(!entry || !files.includes(entry))return {format:'zip',container:'zip',zipEntries:files,selectionRequired:true,headers:[],rows:[]};
-      const inner=await parseBytes(await readZipEntry(bytes,entry,8*MB),{...options,zipEntry:undefined},depth+1);
+      const inner=await parseBytes(await readZipEntry(bytes,entry,payImportLimits.fileBytes),{...options,zipEntry:undefined},depth+1);
       return {...inner,container:'zip',zipEntries:files,zipEntry:entry};
     }
     // XLSB stores formulas in a binary form whose detection cannot be verified here, so it is not accepted.
@@ -263,5 +264,7 @@ async function parseBytes(bytes,options,depth) {
   return {...result,encoding};
 }
 
-try {parentPort.postMessage(await parseBytes(Buffer.from(workerData.bytes),workerData.options,0));}
-catch(error){parentPort.postMessage({error:/^[A-Z_]+$/.test(error.message)?error.message:'INVALID_FILE'});}
+if(workerData?.bytes){
+ try {parentPort.postMessage(await parseBytes(Buffer.from(workerData.bytes),workerData.options,0));}
+ catch(error){parentPort.postMessage({error:/^[A-Z_]+$/.test(error.message)?error.message:'INVALID_FILE'});}
+}

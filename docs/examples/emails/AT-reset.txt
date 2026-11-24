@@ -1,0 +1,11 @@
+Equitensa
+
+Ein sicherer Neustart.
+
+Für Ihr Konto wurde das Zurücksetzen des Passworts angefordert.
+
+Passwort zurücksetzen: https://example.com/email-preview
+
+Der Link ist 1 Stunde gültig. Haben Sie das nicht angefordert, ignorieren Sie diese E-Mail; Ihr Passwort bleibt unverändert. Der Link ist 1 Stunde gültig.
+
+Equitensa · Fair pay. Clear next steps.

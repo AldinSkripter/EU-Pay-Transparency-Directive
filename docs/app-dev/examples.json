@@ -1,0 +1,10 @@
+{
+  "note": "Synthetic request examples. Replace revision and contactId from the current server response. These are not credentials or production-ready legal templates.",
+  "demo": {"country":"AT"},
+  "companyBrand": {"displayName":"Demo Atelier","logo":""},
+  "contact": {"revision":0,"name":"Demo Customer GmbH","address":"Testgasse 1","postalCode":"1010","city":"Wien","country":"AT","business":true,"publicBody":false,"vatId":"ATU12345678","email":"customer@example.com"},
+  "invoiceDraft": {"revision":1,"kind":"invoice","contactId":"REPLACE_WITH_RESULT_ID","issueDate":"2026-11-15","serviceDate":"2026-11-15","dueDate":"2026-11-29","note":"Synthetic draft only","lines":[{"description":"Consulting","quantity":"1","unitPrice":"125.00","rate":"20","unit":"h"}]},
+  "expectedAmountsForExample": {"netCents":12500,"taxCents":2500,"grossCents":15000,"currency":"EUR"},
+  "conflict": {"error":"FINANCE_VERSION_CONFLICT"},
+  "productionGate": {"error":"FINANCE_RELEASE_NOT_ENABLED"}
+}

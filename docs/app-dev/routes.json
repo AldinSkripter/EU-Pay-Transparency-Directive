@@ -1,0 +1,515 @@
+{
+  "description": "Reference inventory of selected source modules, not a complete mobile contract. See source for validation and additional registered routers.",
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/context",
+      "source": "server/app.js",
+      "line": 83
+    },
+    {
+      "method": "GET",
+      "path": "/api/health",
+      "source": "server/app.js",
+      "line": 84
+    },
+    {
+      "method": "GET",
+      "path": "/api/regulatory",
+      "source": "server/app.js",
+      "line": 85
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/register",
+      "source": "server/app.js",
+      "line": 91
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/login",
+      "source": "server/app.js",
+      "line": 105
+    },
+    {
+      "method": "POST",
+      "path": "/api/demo",
+      "source": "server/app.js",
+      "line": 118
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/logout",
+      "source": "server/app.js",
+      "line": 151
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "source": "server/app.js",
+      "line": 155
+    },
+    {
+      "method": "GET",
+      "path": "/api/analysis",
+      "source": "server/app.js",
+      "line": 163
+    },
+    {
+      "method": "GET",
+      "path": "/api/integrations",
+      "source": "server/app.js",
+      "line": 168
+    },
+    {
+      "method": "GET",
+      "path": "/api/employer-context",
+      "source": "server/app.js",
+      "line": 169
+    },
+    {
+      "method": "GET",
+      "path": "/api/workflow",
+      "source": "server/app.js",
+      "line": 174
+    },
+    {
+      "method": "GET",
+      "path": "/api/reporting-plan",
+      "source": "server/app.js",
+      "line": 178
+    },
+    {
+      "method": "POST",
+      "path": "/api/workflow",
+      "source": "server/app.js",
+      "line": 185
+    },
+    {
+      "method": "GET",
+      "path": "/api/import/history",
+      "source": "server/app.js",
+      "line": 195
+    },
+    {
+      "method": "POST",
+      "path": "/api/import",
+      "source": "server/app.js",
+      "line": 196
+    },
+    {
+      "method": "POST",
+      "path": "/api/import/quality",
+      "source": "server/app.js",
+      "line": 242
+    },
+    {
+      "method": "POST",
+      "path": "/api/import/assist",
+      "source": "server/app.js",
+      "line": 247
+    },
+    {
+      "method": "POST",
+      "path": "/api/import/preview",
+      "source": "server/app.js",
+      "line": 257
+    },
+    {
+      "method": "GET",
+      "path": "/api/reports/:format",
+      "source": "server/app.js",
+      "line": 277
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/verify-email",
+      "source": "server/account.js",
+      "line": 50
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/forgot-password",
+      "source": "server/account.js",
+      "line": 59
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/reset-password",
+      "source": "server/account.js",
+      "line": 67
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/resend-verification",
+      "source": "server/account.js",
+      "line": 85
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/password",
+      "source": "server/account.js",
+      "line": 90
+    },
+    {
+      "method": "GET",
+      "path": "/api/auth/security",
+      "source": "server/account.js",
+      "line": 100
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/mfa/setup",
+      "source": "server/account.js",
+      "line": 104
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/mfa/enable",
+      "source": "server/account.js",
+      "line": 112
+    },
+    {
+      "method": "POST",
+      "path": "/api/auth/mfa/disable",
+      "source": "server/account.js",
+      "line": 124
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance",
+      "source": "server/finance.js",
+      "line": 144
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/settings",
+      "source": "server/finance.js",
+      "line": 145
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/designs",
+      "source": "server/finance.js",
+      "line": 146
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/designs/:id/remove",
+      "source": "server/finance.js",
+      "line": 152
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance/tax-options",
+      "source": "server/finance.js",
+      "line": 156
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/preview",
+      "source": "server/finance.js",
+      "line": 161
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/qr-preview",
+      "source": "server/finance.js",
+      "line": 162
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/documents/:id/share",
+      "source": "server/finance.js",
+      "line": 167
+    },
+    {
+      "method": "GET",
+      "path": "/shared-finance/:company/:document/:token",
+      "source": "server/finance.js",
+      "line": 180
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/expenses/:id/attachments",
+      "source": "server/finance.js",
+      "line": 192
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance/attachments/:id",
+      "source": "server/finance.js",
+      "line": 199
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance/archive.zip",
+      "source": "server/finance.js",
+      "line": 204
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/bank/preview",
+      "source": "server/finance.js",
+      "line": 211
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/bank/import",
+      "source": "server/finance.js",
+      "line": 212
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/bank/:id/allocate",
+      "source": "server/finance.js",
+      "line": 217
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/contacts",
+      "source": "server/finance.js",
+      "line": 224
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/contacts/:id",
+      "source": "server/finance.js",
+      "line": 228
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/products",
+      "source": "server/finance.js",
+      "line": 237
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/products/:id",
+      "source": "server/finance.js",
+      "line": 238
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/documents/:id/duplicate",
+      "source": "server/finance.js",
+      "line": 239
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/recurring",
+      "source": "server/finance.js",
+      "line": 244
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/recurring/:id/toggle",
+      "source": "server/finance.js",
+      "line": 255
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/recurring/run",
+      "source": "server/finance.js",
+      "line": 256
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance/documents/:id/reminder.eml",
+      "source": "server/finance.js",
+      "line": 271
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance/export.csv",
+      "source": "server/finance.js",
+      "line": 282
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance/receivables",
+      "source": "server/finance.js",
+      "line": 295
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance/receivables.csv",
+      "source": "server/finance.js",
+      "line": 296
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/documents",
+      "source": "server/finance.js",
+      "line": 302
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/documents/:id/edit",
+      "source": "server/finance.js",
+      "line": 306
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/documents/:id/convert",
+      "source": "server/finance.js",
+      "line": 311
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/documents/:id/offer-status",
+      "source": "server/finance.js",
+      "line": 319
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance/documents/:id/issue-check",
+      "source": "server/finance.js",
+      "line": 324
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/documents/:id/issue",
+      "source": "server/finance.js",
+      "line": 331
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/documents/:id/payment",
+      "source": "server/finance.js",
+      "line": 367
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance/documents/:id/bundle.zip",
+      "source": "server/finance.js",
+      "line": 374
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/documents/:id/email-draft",
+      "source": "server/finance.js",
+      "line": 379
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/documents/:id/delivery",
+      "source": "server/finance.js",
+      "line": 385
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance/einvoice-capabilities",
+      "source": "server/finance.js",
+      "line": 388
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/einvoice-preview",
+      "source": "server/finance.js",
+      "line": 389
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/receipt-scan",
+      "source": "server/finance.js",
+      "line": 396
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/receipt-import",
+      "source": "server/finance.js",
+      "line": 400
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/expenses",
+      "source": "server/finance.js",
+      "line": 411
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/expenses/:id",
+      "source": "server/finance.js",
+      "line": 415
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/quote",
+      "source": "server/finance.js",
+      "line": 416
+    },
+    {
+      "method": "POST",
+      "path": "/api/finance/demo-subscription",
+      "source": "server/finance.js",
+      "line": 417
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance/documents/:id/pdf",
+      "source": "server/finance.js",
+      "line": 421
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance/documents/:id/originals/:file",
+      "source": "server/finance.js",
+      "line": 427
+    },
+    {
+      "method": "GET",
+      "path": "/api/finance/export",
+      "source": "server/finance.js",
+      "line": 431
+    },
+    {
+      "method": "GET",
+      "path": "/api/billing",
+      "source": "server/billing.js",
+      "line": 24
+    },
+    {
+      "method": "POST",
+      "path": "/api/billing/checkout",
+      "source": "server/billing.js",
+      "line": 25
+    },
+    {
+      "method": "POST",
+      "path": "/api/billing/sandbox-confirm",
+      "source": "server/billing.js",
+      "line": 56
+    },
+    {
+      "method": "POST",
+      "path": "/api/billing/portal",
+      "source": "server/billing.js",
+      "line": 67
+    },
+    {
+      "method": "GET",
+      "path": "/api/billing/cancellation",
+      "source": "server/billing.js",
+      "line": 109
+    },
+    {
+      "method": "POST",
+      "path": "/api/billing/cancellation",
+      "source": "server/billing.js",
+      "line": 110
+    },
+    {
+      "method": "GET",
+      "path": "/api/company/brand",
+      "source": "server/company-brand.js",
+      "line": 14
+    },
+    {
+      "method": "POST",
+      "path": "/api/company/brand",
+      "source": "server/company-brand.js",
+      "line": 15
+    }
+  ]
+}

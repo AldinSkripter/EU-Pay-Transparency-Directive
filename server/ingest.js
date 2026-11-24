@@ -1,3 +1,4 @@
+import {payImportLimits} from '../shared/pay-import-limits.js';
 import express from 'express';
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import { randomBytes, randomUUID, createHash } from 'node:crypto';
@@ -8,7 +9,7 @@ import { randomBytes, randomUUID, createHash } from 'node:crypto';
 export const API_KEY_PATTERN = /^eqt_[A-Za-z0-9_-]{43}$/;
 export const newApiKey = () => `eqt_${randomBytes(32).toString('base64url')}`;
 export const hashApiKey = key => createHash('sha256').update(key).digest('hex');
-export const LIMITS = { bytes: 4 * 1024 * 1024, records: 10000, pending: 20, keys: 5, retentionDays: 30 };
+export const LIMITS = { bytes: payImportLimits.fileBytes, records: 10000, pending: 20, keys: 5, retentionDays: 30 };
 const UNSAFE = ['__proto__', 'constructor', 'prototype'];
 const printable = (value, max) => typeof value === 'string' && value.trim().length > 0 && value.length <= max && !/[\u0000-\u001f\u007f]/.test(value);
 
@@ -44,7 +45,7 @@ export function ingestPushRoutes(app, { store, control }) {
     next();
   };
   app.get('/api/ingest/v1/ping', byIp, authenticate, byKey, (req, res) => res.json({ ok: true, company: { name: req.company.name, country: req.company.country }, key: req.apiKey.label }));
-  app.post('/api/ingest/v1/employees', byIp, authenticate, byKey, express.json({ limit: '5mb', type: ['application/json', 'application/*+json'] }), express.text({ type: 'text/csv', limit: '5mb' }), async (req, res) => {
+  app.post('/api/ingest/v1/employees', byIp, authenticate, byKey, express.json({ limit: payImportLimits.jsonBytes, type: ['application/json', 'application/*+json'] }), express.text({ type: 'text/csv', limit: '5mb' }), async (req, res) => {
     const csv = typeof req.body === 'string', year = csv ? Number(req.query.year) : req.body?.year;
     const source = csv ? req.query.source : req.body?.source;
     if (!validYear(year)) return reject(res, 400, 'INVALID_YEAR');

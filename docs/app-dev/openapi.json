@@ -1,0 +1,3778 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Equitensa core web API — development handoff",
+    "version": "0.1.0",
+    "description": "Existing /api endpoints only. NOT a production mobile API. Cookie auth today; OAuth/PKCE and /api/v1 are proposed, not implemented. Some nested response schemas are intentionally provisional."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:3000/api",
+      "description": "Local synthetic development only"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "webSession": {
+        "type": "apiKey",
+        "in": "cookie",
+        "name": "equitensa_session",
+        "description": "Current web session only. Native mobile authentication is not implemented."
+      }
+    },
+    "schemas": {
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "string"
+          },
+          "fields": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "Company": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string",
+            "enum": [
+              "DE",
+              "AT",
+              "SI"
+            ]
+          }
+        }
+      },
+      "Brand": {
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "logo": {
+            "type": "string",
+            "description": "Empty string or validated PNG/JPEG data URL, maximum decoded size 250 KB"
+          }
+        },
+        "required": [
+          "displayName",
+          "logo"
+        ]
+      },
+      "FinanceState": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer"
+          },
+          "country": {
+            "type": "string",
+            "enum": [
+              "DE",
+              "AT",
+              "SI"
+            ]
+          },
+          "countryConfirmed": {
+            "type": "boolean"
+          },
+          "profile": {
+            "type": "object"
+          },
+          "contacts": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "documents": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "expenses": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          }
+        },
+        "description": "Development snapshot. Collections are not paginated. Nested schemas remain provisional."
+      },
+      "Registration": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string",
+            "format": "email"
+          },
+          "password": {
+            "type": "string",
+            "minLength": 12,
+            "maxLength": 128
+          },
+          "companyName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 255
+          },
+          "country": {
+            "type": "string",
+            "enum": [
+              "DE",
+              "AT",
+              "SI"
+            ]
+          }
+        },
+        "required": [
+          "email",
+          "password",
+          "companyName",
+          "country"
+        ]
+      },
+      "Login": {
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string",
+            "description": "TOTP/recovery code when MFA_REQUIRED"
+          }
+        },
+        "required": [
+          "email",
+          "password"
+        ]
+      },
+      "Contact": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer"
+          },
+          "name": {
+            "type": "string"
+          },
+          "address": {
+            "type": "string"
+          },
+          "postalCode": {
+            "type": "string"
+          },
+          "city": {
+            "type": "string"
+          },
+          "country": {
+            "type": "string",
+            "enum": [
+              "AD",
+              "AE",
+              "AF",
+              "AG",
+              "AI",
+              "AL",
+              "AM",
+              "AO",
+              "AQ",
+              "AR",
+              "AS",
+              "AT",
+              "AU",
+              "AW",
+              "AX",
+              "AZ",
+              "BA",
+              "BB",
+              "BD",
+              "BE",
+              "BF",
+              "BG",
+              "BH",
+              "BI",
+              "BJ",
+              "BL",
+              "BM",
+              "BN",
+              "BO",
+              "BQ",
+              "BR",
+              "BS",
+              "BT",
+              "BV",
+              "BW",
+              "BY",
+              "BZ",
+              "CA",
+              "CC",
+              "CD",
+              "CF",
+              "CG",
+              "CH",
+              "CI",
+              "CK",
+              "CL",
+              "CM",
+              "CN",
+              "CO",
+              "CR",
+              "CU",
+              "CV",
+              "CW",
+              "CX",
+              "CY",
+              "CZ",
+              "DE",
+              "DJ",
+              "DK",
+              "DM",
+              "DO",
+              "DZ",
+              "EC",
+              "EE",
+              "EG",
+              "EH",
+              "ER",
+              "ES",
+              "ET",
+              "FI",
+              "FJ",
+              "FK",
+              "FM",
+              "FO",
+              "FR",
+              "GA",
+              "GB",
+              "GD",
+              "GE",
+              "GF",
+              "GG",
+              "GH",
+              "GI",
+              "GL",
+              "GM",
+              "GN",
+              "GP",
+              "GQ",
+              "GR",
+              "GS",
+              "GT",
+              "GU",
+              "GW",
+              "GY",
+              "HK",
+              "HM",
+              "HN",
+              "HR",
+              "HT",
+              "HU",
+              "ID",
+              "IE",
+              "IL",
+              "IM",
+              "IN",
+              "IO",
+              "IQ",
+              "IR",
+              "IS",
+              "IT",
+              "JE",
+              "JM",
+              "JO",
+              "JP",
+              "KE",
+              "KG",
+              "KH",
+              "KI",
+              "KM",
+              "KN",
+              "KP",
+              "KR",
+              "KW",
+              "KY",
+              "KZ",
+              "LA",
+              "LB",
+              "LC",
+              "LI",
+              "LK",
+              "LR",
+              "LS",
+              "LT",
+              "LU",
+              "LV",
+              "LY",
+              "MA",
+              "MC",
+              "MD",
+              "ME",
+              "MF",
+              "MG",
+              "MH",
+              "MK",
+              "ML",
+              "MM",
+              "MN",
+              "MO",
+              "MP",
+              "MQ",
+              "MR",
+              "MS",
+              "MT",
+              "MU",
+              "MV",
+              "MW",
+              "MX",
+              "MY",
+              "MZ",
+              "NA",
+              "NC",
+              "NE",
+              "NF",
+              "NG",
+              "NI",
+              "NL",
+              "NO",
+              "NP",
+              "NR",
+              "NU",
+              "NZ",
+              "OM",
+              "PA",
+              "PE",
+              "PF",
+              "PG",
+              "PH",
+              "PK",
+              "PL",
+              "PM",
+              "PN",
+              "PR",
+              "PS",
+              "PT",
+              "PW",
+              "PY",
+              "QA",
+              "RE",
+              "RO",
+              "RS",
+              "RU",
+              "RW",
+              "SA",
+              "SB",
+              "SC",
+              "SD",
+              "SE",
+              "SG",
+              "SH",
+              "SI",
+              "SJ",
+              "SK",
+              "SL",
+              "SM",
+              "SN",
+              "SO",
+              "SR",
+              "SS",
+              "ST",
+              "SV",
+              "SX",
+              "SY",
+              "SZ",
+              "TC",
+              "TD",
+              "TF",
+              "TG",
+              "TH",
+              "TJ",
+              "TK",
+              "TL",
+              "TM",
+              "TN",
+              "TO",
+              "TR",
+              "TT",
+              "TV",
+              "TW",
+              "TZ",
+              "UA",
+              "UG",
+              "UM",
+              "US",
+              "UY",
+              "UZ",
+              "VA",
+              "VC",
+              "VE",
+              "VG",
+              "VI",
+              "VN",
+              "VU",
+              "WF",
+              "WS",
+              "YE",
+              "YT",
+              "ZA",
+              "ZM",
+              "ZW"
+            ],
+            "description": "Recipient ISO country; independent of issuer country DE/AT/SI."
+          },
+          "business": {
+            "type": "boolean"
+          },
+          "publicBody": {
+            "type": "boolean"
+          },
+          "vatId": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision",
+          "name",
+          "country"
+        ]
+      },
+      "Draft": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "invoice",
+              "offer"
+            ]
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "note": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "string",
+                  "example": "1"
+                },
+                "unitPrice": {
+                  "type": "string",
+                  "example": "125.00"
+                },
+                "rate": {
+                  "type": "string",
+                  "example": "20"
+                },
+                "unit": {
+                  "type": "string",
+                  "example": "h"
+                },
+                "discountPercent": {
+                  "type": "string",
+                  "example": "10"
+                }
+              },
+              "required": [
+                "description",
+                "quantity",
+                "unitPrice",
+                "rate"
+              ]
+            }
+          },
+          "taxTreatment": {
+            "type": "string",
+            "enum": [
+              "domestic",
+              "domestic_vat_foreign",
+              "eu_b2b_services",
+              "eu_goods",
+              "export_goods",
+              "non_eu_b2b_services",
+              "small_business"
+            ],
+            "default": "domestic"
+          },
+          "taxEvidence": {
+            "type": "object",
+            "properties": {
+              "generalRuleConfirmed": {
+                "type": "boolean"
+              },
+              "vatVerified": {
+                "type": "boolean"
+              },
+              "reference": {
+                "type": "string",
+                "maxLength": 255
+              },
+              "checkedOn": {
+                "type": "string",
+                "format": "date"
+              },
+              "localVatConfirmed": {
+                "type": "boolean"
+              },
+              "smallBusinessConfirmed": {
+                "type": "boolean"
+              },
+              "goodsConditionsConfirmed": {
+                "type": "boolean"
+              },
+              "reportingConfirmed": {
+                "type": "boolean"
+              },
+              "transportReference": {
+                "type": "string",
+                "maxLength": 255
+              },
+              "destinationCountry": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 2
+              },
+              "businessEvidence": {
+                "type": "string",
+                "maxLength": 255
+              }
+            }
+          },
+          "reference": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "einvoice": {
+            "type": "object",
+            "properties": {
+              "contactName": {
+                "type": "string"
+              },
+              "contactPhone": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "revision",
+          "kind",
+          "contactId",
+          "issueDate",
+          "serviceDate",
+          "dueDate",
+          "lines"
+        ]
+      },
+      "Preview": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer"
+          },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "invoice",
+              "offer"
+            ]
+          },
+          "contactId": {
+            "type": "string"
+          },
+          "issueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "serviceDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "dueDate": {
+            "type": "string",
+            "format": "date"
+          },
+          "note": {
+            "type": "string"
+          },
+          "lines": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "description": {
+                  "type": "string"
+                },
+                "quantity": {
+                  "type": "string",
+                  "example": "1"
+                },
+                "unitPrice": {
+                  "type": "string",
+                  "example": "125.00"
+                },
+                "rate": {
+                  "type": "string",
+                  "example": "20"
+                },
+                "unit": {
+                  "type": "string",
+                  "example": "h"
+                },
+                "discountPercent": {
+                  "type": "string",
+                  "example": "10"
+                }
+              },
+              "required": [
+                "description",
+                "quantity",
+                "unitPrice",
+                "rate"
+              ]
+            }
+          },
+          "taxTreatment": {
+            "type": "string",
+            "enum": [
+              "domestic",
+              "domestic_vat_foreign",
+              "eu_b2b_services",
+              "eu_goods",
+              "export_goods",
+              "non_eu_b2b_services",
+              "small_business"
+            ],
+            "default": "domestic"
+          },
+          "taxEvidence": {
+            "type": "object",
+            "properties": {
+              "generalRuleConfirmed": {
+                "type": "boolean"
+              },
+              "vatVerified": {
+                "type": "boolean"
+              },
+              "reference": {
+                "type": "string",
+                "maxLength": 255
+              },
+              "checkedOn": {
+                "type": "string",
+                "format": "date"
+              },
+              "localVatConfirmed": {
+                "type": "boolean"
+              },
+              "smallBusinessConfirmed": {
+                "type": "boolean"
+              },
+              "goodsConditionsConfirmed": {
+                "type": "boolean"
+              },
+              "reportingConfirmed": {
+                "type": "boolean"
+              },
+              "transportReference": {
+                "type": "string",
+                "maxLength": 255
+              },
+              "destinationCountry": {
+                "type": "string",
+                "minLength": 2,
+                "maxLength": 2
+              },
+              "businessEvidence": {
+                "type": "string",
+                "maxLength": 255
+              }
+            }
+          },
+          "reference": {
+            "type": "string",
+            "maxLength": 120
+          },
+          "einvoice": {
+            "type": "object",
+            "properties": {
+              "contactName": {
+                "type": "string"
+              },
+              "contactPhone": {
+                "type": "string"
+              }
+            }
+          }
+        },
+        "required": [
+          "kind",
+          "contactId",
+          "issueDate",
+          "serviceDate",
+          "dueDate",
+          "lines"
+        ]
+      },
+      "ReceiptFile": {
+        "type": "object",
+        "properties": {
+          "filename": {
+            "type": "string",
+            "maxLength": 200
+          },
+          "data": {
+            "type": "string",
+            "format": "byte",
+            "maxLength": 2800000,
+            "description": "Base64 without data URL prefix; decoded maximum 2 MB"
+          }
+        },
+        "required": [
+          "filename",
+          "data"
+        ]
+      },
+      "ReceiptImport": {
+        "type": "object",
+        "properties": {
+          "revision": {
+            "type": "integer"
+          },
+          "attachment": {
+            "$ref": "#/components/schemas/ReceiptFile"
+          },
+          "reviewed": {
+            "type": "boolean",
+            "enum": [
+              true
+            ]
+          },
+          "supplier": {
+            "type": "string"
+          },
+          "reference": {
+            "type": "string"
+          },
+          "incurredOn": {
+            "type": "string",
+            "format": "date"
+          },
+          "amount": {
+            "type": "string",
+            "example": "119.00"
+          },
+          "category": {
+            "type": "string",
+            "enum": [
+              "software",
+              "office",
+              "travel",
+              "services",
+              "other"
+            ]
+          },
+          "note": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "revision",
+          "attachment",
+          "reviewed",
+          "supplier",
+          "reference",
+          "incurredOn",
+          "amount"
+        ]
+      }
+    }
+  },
+  "paths": {
+    "/health": {
+      "get": {
+        "summary": "Health and runtime mode",
+        "description": "",
+        "security": [],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/demo": {
+      "post": {
+        "summary": "Create disposable synthetic demo session",
+        "description": "Local demo only. Sets HttpOnly session cookie. Not a production mobile login.",
+        "security": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "country": {
+                    "type": "string",
+                    "enum": [
+                      "DE",
+                      "AT",
+                      "SI"
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/register": {
+      "post": {
+        "summary": "Register company; email verification required",
+        "description": "",
+        "security": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "company": {
+                      "$ref": "#/components/schemas/Company"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Registration"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Existing web session login",
+        "description": "Cookie based. Does not return OAuth access or refresh tokens.",
+        "security": [],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Login"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/auth/logout": {
+      "post": {
+        "summary": "Delete current web session",
+        "description": "",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/me": {
+      "get": {
+        "summary": "Current authenticated company and user",
+        "description": "",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "company": {
+                      "$ref": "#/components/schemas/Company"
+                    },
+                    "user": {
+                      "type": "object",
+                      "properties": {
+                        "email": {
+                          "type": "string"
+                        },
+                        "role": {
+                          "type": "string"
+                        },
+                        "emailVerified": {
+                          "type": "boolean"
+                        },
+                        "mfaEnabled": {
+                          "type": "boolean"
+                        }
+                      }
+                    },
+                    "demo": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/company/brand": {
+      "get": {
+        "summary": "Shared Pay/Finance display identity",
+        "description": "",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "brand": {
+                      "$ref": "#/components/schemas/Brand"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "summary": "Update display identity for session company",
+        "description": "",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "brand": {
+                      "$ref": "#/components/schemas/Brand"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Brand"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance": {
+      "get": {
+        "summary": "Finance development state and capabilities",
+        "description": "Production is intentionally blocked with FINANCE_RELEASE_NOT_ENABLED.",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "$ref": "#/components/schemas/FinanceState"
+                    },
+                    "country": {
+                      "type": "object"
+                    },
+                    "plans": {
+                      "type": "array",
+                      "items": {
+                        "type": "object"
+                      }
+                    },
+                    "demo": {
+                      "type": "boolean"
+                    },
+                    "stage": {
+                      "type": "string"
+                    },
+                    "capabilities": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/contacts": {
+      "post": {
+        "summary": "Create development record using current revision",
+        "description": "",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "$ref": "#/components/schemas/FinanceState"
+                    },
+                    "result": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Contact"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/documents": {
+      "post": {
+        "summary": "Create development record using current revision",
+        "description": "",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "$ref": "#/components/schemas/FinanceState"
+                    },
+                    "result": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Draft"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/tax-options": {
+      "get": {
+        "summary": "Authoritative recipient-specific tax treatments, rates, notices and required evidence",
+        "description": "",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "contactId",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/preview": {
+      "post": {
+        "summary": "Calculate draft without saving",
+        "description": "Revision is not consumed by preview. Server totals are authoritative.",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "document": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/Preview"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/receipt-scan": {
+      "post": {
+        "summary": "Extract suggestions from image, PDF or structured invoice XML",
+        "description": "No persistence. PDF up to 5 pages. Up to 60 seconds, rate limited; manual correction always required. Camera capture happens in Flutter, this API receives bytes.",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "text": {
+                      "type": "string"
+                    },
+                    "suggestions": {
+                      "type": "object",
+                      "properties": {
+                        "supplier": {
+                          "type": "string"
+                        },
+                        "reference": {
+                          "type": "string"
+                        },
+                        "incurredOn": {
+                          "type": "string"
+                        },
+                        "amount": {
+                          "type": "string"
+                        },
+                        "category": {
+                          "type": "string"
+                        },
+                        "note": {
+                          "type": "string"
+                        }
+                      }
+                    },
+                    "requiresReview": {
+                      "type": "boolean"
+                    },
+                    "format": {
+                      "type": "string"
+                    },
+                    "validated": {
+                      "type": "boolean"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptFile"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/receipt-import": {
+      "post": {
+        "summary": "Persist reviewed expense and encrypted original atomically",
+        "description": "",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "state": {
+                      "$ref": "#/components/schemas/FinanceState"
+                    },
+                    "result": {
+                      "type": "object"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReceiptImport"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/einvoice-capabilities": {
+      "get": {
+        "summary": "Country-specific test export formats and validator availability",
+        "description": "",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/einvoice-preview": {
+      "post": {
+        "summary": "Generate and validate a structured TEST draft",
+        "description": "DE: XRechnung/ZUGFeRD. AT: ebInterface 6.1 or UBL. SI: e-SLOG 2.0 or UBL. Native formats validate the common EN16931 model and national XSD. No issuance or transmission. Requires pinned local validator. ebInterface test profile requires buyer UID.",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Validated test file; Content-Disposition filename and X-Equitensa-Document-Status: test-draft",
+            "content": {
+              "application/xml": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "Validator rejected the output; no invoice file returned",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "revision": {
+                    "type": "integer"
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "invoice",
+                      "offer"
+                    ]
+                  },
+                  "contactId": {
+                    "type": "string"
+                  },
+                  "issueDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "serviceDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "dueDate": {
+                    "type": "string",
+                    "format": "date"
+                  },
+                  "note": {
+                    "type": "string"
+                  },
+                  "lines": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "description": {
+                          "type": "string"
+                        },
+                        "quantity": {
+                          "type": "string",
+                          "example": "1"
+                        },
+                        "unitPrice": {
+                          "type": "string",
+                          "example": "125.00"
+                        },
+                        "rate": {
+                          "type": "string",
+                          "example": "20"
+                        },
+                        "unit": {
+                          "type": "string",
+                          "example": "h"
+                        },
+                        "discountPercent": {
+                          "type": "string",
+                          "example": "10"
+                        }
+                      },
+                      "required": [
+                        "description",
+                        "quantity",
+                        "unitPrice",
+                        "rate"
+                      ]
+                    }
+                  },
+                  "taxTreatment": {
+                    "type": "string",
+                    "enum": [
+                      "domestic",
+                      "domestic_vat_foreign",
+                      "eu_b2b_services",
+                      "eu_goods",
+                      "export_goods",
+                      "non_eu_b2b_services",
+                      "small_business"
+                    ],
+                    "default": "domestic"
+                  },
+                  "taxEvidence": {
+                    "type": "object",
+                    "properties": {
+                      "generalRuleConfirmed": {
+                        "type": "boolean"
+                      },
+                      "vatVerified": {
+                        "type": "boolean"
+                      },
+                      "reference": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "checkedOn": {
+                        "type": "string",
+                        "format": "date"
+                      },
+                      "localVatConfirmed": {
+                        "type": "boolean"
+                      },
+                      "smallBusinessConfirmed": {
+                        "type": "boolean"
+                      },
+                      "goodsConditionsConfirmed": {
+                        "type": "boolean"
+                      },
+                      "reportingConfirmed": {
+                        "type": "boolean"
+                      },
+                      "transportReference": {
+                        "type": "string",
+                        "maxLength": 255
+                      },
+                      "destinationCountry": {
+                        "type": "string",
+                        "minLength": 2,
+                        "maxLength": 2
+                      },
+                      "businessEvidence": {
+                        "type": "string",
+                        "maxLength": 255
+                      }
+                    }
+                  },
+                  "reference": {
+                    "type": "string",
+                    "maxLength": 120
+                  },
+                  "einvoice": {
+                    "type": "object",
+                    "properties": {
+                      "contactName": {
+                        "type": "string"
+                      },
+                      "contactPhone": {
+                        "type": "string"
+                      }
+                    }
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "xrechnung",
+                      "zugferd",
+                      "ubl",
+                      "ebinterface",
+                      "eslog"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "contactId",
+                  "issueDate",
+                  "serviceDate",
+                  "dueDate",
+                  "lines"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/analysis": {
+      "get": {
+        "summary": "Pay data for reporting year",
+        "description": "Nested Pay response schema is provisional; use source and fixtures before generating strict models.",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "year",
+            "schema": {
+              "type": "integer",
+              "default": 2026,
+              "minimum": 2000,
+              "maximum": 2100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/workflow": {
+      "get": {
+        "summary": "Pay data for reporting year",
+        "description": "Nested Pay response schema is provisional; use source and fixtures before generating strict models.",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "query",
+            "name": "year",
+            "schema": {
+              "type": "integer",
+              "default": 2026,
+              "minimum": 2000,
+              "maximum": 2100
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/billing": {
+      "get": {
+        "summary": "Existing Pay subscription status",
+        "description": "Not a unified mobile entitlement response; Finance access must be handled separately.",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/documents/{id}/pdf": {
+      "get": {
+        "summary": "Download authenticated PDF",
+        "description": "",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft or issued test PDF",
+            "content": {
+              "application/pdf": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/quote": {
+      "post": {
+        "summary": "Authoritative Finance package quote",
+        "description": "Net EUR integer cents. Rechnungen (finance_start) 799/month, exactly one seat. Business 1999/2 seats; Pro 2999/3 seats. Additional seats 699/month on Business/Pro. Annual equals monthly total times 12. A quote grants no access.",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "plan": {
+                    "type": "string",
+                    "enum": [
+                      "finance_start",
+                      "finance_business",
+                      "finance_pro"
+                    ]
+                  },
+                  "paidSeats": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "interval": {
+                    "type": "string",
+                    "enum": [
+                      "monthly",
+                      "annual"
+                    ]
+                  }
+                },
+                "required": [
+                  "plan",
+                  "paidSeats",
+                  "interval"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/demo-subscription": {
+      "post": {
+        "summary": "Select a package in the synthetic demo only",
+        "description": "No charge or production subscription. Server gates bank/expense operations to Business/Pro and recurring operations to Pro. Unselected demos can explore all features.",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "plan": {
+                    "type": "string",
+                    "enum": [
+                      "finance_start",
+                      "finance_business",
+                      "finance_pro"
+                    ]
+                  },
+                  "paidSeats": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000
+                  },
+                  "interval": {
+                    "type": "string",
+                    "enum": [
+                      "monthly",
+                      "annual"
+                    ]
+                  },
+                  "revision": {
+                    "type": "integer"
+                  },
+                  "accepted": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  }
+                },
+                "required": [
+                  "plan",
+                  "paidSeats",
+                  "interval",
+                  "revision",
+                  "accepted"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/documents/{id}/issue-check": {
+      "get": {
+        "summary": "Check issuance fields before confirmation",
+        "description": "ready is a field check, not final validation or legal certification. See FINANCE-DELIVERY.md.",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "query",
+            "name": "format",
+            "schema": {
+              "type": "string",
+              "enum": [
+                "xrechnung",
+                "zugferd",
+                "ebinterface",
+                "eslog",
+                "ubl"
+              ]
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/documents/{id}/issue": {
+      "post": {
+        "summary": "Validate and issue a test invoice with immutable originals",
+        "description": "Country comes from authenticated company. Unsupported business cases fail. Reconcile after timeouts; never generate a new key blindly.",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "revision": {
+                    "type": "integer"
+                  },
+                  "confirm": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  },
+                  "taxScopeConfirmed": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  },
+                  "format": {
+                    "type": "string",
+                    "enum": [
+                      "xrechnung",
+                      "zugferd",
+                      "ebinterface",
+                      "eslog",
+                      "ubl"
+                    ]
+                  },
+                  "requestKey": {
+                    "type": "string",
+                    "description": "Stable unique key per issuance attempt; reuse after lost response."
+                  }
+                },
+                "required": [
+                  "revision",
+                  "confirm",
+                  "taxScopeConfirmed",
+                  "format",
+                  "requestKey"
+                ]
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/documents/{id}/bundle.zip": {
+      "get": {
+        "summary": "Download stored PDF/XML originals and digest manifest",
+        "description": "",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Original files ZIP",
+            "content": {
+              "application/zip": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/documents/{id}/email-draft": {
+      "post": {
+        "summary": "Download an unsent email containing invoice originals",
+        "description": "Not sent by the server. Native mail clients may not support opening .eml; sharing PDF/XML attachments is a separate client UI operation, never proof of delivery.",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unsent email draft",
+            "content": {
+              "message/rfc822": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "recipient": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "subject": {
+                    "type": "string",
+                    "maxLength": 200
+                  },
+                  "message": {
+                    "type": "string",
+                    "maxLength": 5000
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/finance/documents/{id}/delivery": {
+      "post": {
+        "summary": "Record user-confirmed external delivery",
+        "description": "A manual event, not a provider receipt.",
+        "security": [
+          {
+            "webSession": []
+          }
+        ],
+        "parameters": [
+          {
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "in": "header",
+            "name": "Origin",
+            "required": true,
+            "schema": {
+              "type": "string"
+            },
+            "description": "Existing web CSRF guard: must match server allowed origin. Do not remove this guard for mobile."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Validation failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication/MFA required",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Verification, origin or permission failure",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "Revision or business-state conflict; reconcile before retry",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Feature unavailable, including production Finance release gate",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "revision": {
+                    "type": "integer"
+                  },
+                  "confirm": {
+                    "type": "boolean",
+                    "enum": [
+                      true
+                    ]
+                  },
+                  "channel": {
+                    "type": "string",
+                    "enum": [
+                      "email",
+                      "portal",
+                      "other"
+                    ]
+                  },
+                  "recipient": {
+                    "type": "string",
+                    "format": "email"
+                  },
+                  "sentAt": {
+                    "type": "string",
+                    "format": "date-time"
+                  },
+                  "reference": {
+                    "type": "string",
+                    "maxLength": 500
+                  }
+                },
+                "required": [
+                  "revision",
+                  "confirm",
+                  "channel",
+                  "recipient",
+                  "sentAt"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

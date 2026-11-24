@@ -1,14 +1,23 @@
+import {payImportLimits} from '../shared/pay-import-limits.js';
+import {PayUploads,payUploadRoutes} from './pay-uploads.js';
+import {companyBrandRoutes} from './company-brand.js';
 import express from 'express';
+import {financeRoutes} from './finance.js';
 import helmet from 'helmet';
 import { rateLimit, ipKeyGenerator } from 'express-rate-limit';
 import { randomUUID, randomBytes, createHash } from 'node:crypto';
 import { createAccountService } from './account.js';
 import { MemoryMailer } from './mailer.js';
+import { createEmailPlatform } from './email-platform.js';
 import { parseImportInput } from './file-parser.js';
 import { payrollRoutes } from './payroll-routes.js';
 import { workerRightsRoutes } from './worker-rights.js';
 import { payCriteriaRoutes } from './pay-criteria.js';
+import { nationalReportRoutes } from './national-reports.js';
 import { evidenceRoutes } from './evidence.js';
+import { employerControlRoutes, controlState } from './employer-controls.js';
+import { lifecycleRoutes } from './data-lifecycle.js';
+import { directiveArticles } from '../shared/employer-controls.js';
 import { ingestPushRoutes, integrationKeyRoutes, resolveBatch } from './ingest.js';
 import { parseDelimited, suggestMapping, mapImportRecord, validateMapping, inspectImport, validateImportContext } from './importer.js';
 import { assessQuality, validateFixes, prepareRecords, normalizeMapping } from './data-quality.js';
@@ -30,12 +39,14 @@ import { effectivePayment } from './payment-config.js';
 import {defaultGoogle,googleForRequest} from './google-config.js';
 import {googleRoutes} from './google-auth.js';
 
-export function createApp({ store, demo = false, secret, secure = false, origins = [], billing = {}, control = new MemoryControlStore(), stripeFetch = fetch, googleFetch = fetch, mailer = new MemoryMailer(), accountKey = randomBytes(32), requireOwnerMfa = secure, assistant = createAssistant() }) {
+export function createApp({ store, demo = false, secret, secure = false, origins = [], billing = {}, control = new MemoryControlStore(), stripeFetch = fetch, googleFetch = fetch, mailer = new MemoryMailer(), emailTransportFactory, accountKey = randomBytes(32), requireOwnerMfa = secure, assistant = createAssistant() }) {
   const app = express();
+  const payUploads=new PayUploads({key:accountKey,demo});
+  const parseInput=async req=>{const parsed=req.body.file?.uploadId?await payUploads.result(req.session.company.id,req.body.file.uploadId,req.body):await parseImportInput(req.body);if(parsed.paged&&!/^\/api\/payroll\//.test(req.path))throw Error('PAYROLL_TRANSACTION_IMPORT_REQUIRED');return parsed;};
   app.disable('x-powered-by');
   app.use(helmet({ contentSecurityPolicy: secure ? undefined : false }));
   app.use(marketContext);
-  app.use('/api', rateLimit({ windowMs: 60_000, limit: 100, standardHeaders: 'draft-8', legacyHeaders: false }));
+  app.use('/api', rateLimit({ windowMs: 60_000, limit: 100, standardHeaders: 'draft-8', legacyHeaders: false,skip:req=>req.method==='PUT'&&/^\/pay-imports\/[a-f0-9-]+\/chunks\/\d+$/.test(req.path) }));
   // Provider webhooks are authenticated by the signature over the raw body.
   app.post('/api/billing/webhook',express.raw({type:'application/json',limit:'1mb'}),async(req,res)=> {
     const currentBilling=await effectivePayment(control,billing,demo,req);
@@ -68,6 +79,7 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     }
     next();
   });
+  app.use(['/api/import','/api/payroll','/api/national-report'],express.json({limit:payImportLimits.jsonBytes}));
   app.use(express.json({ limit: '6mb' }));
   app.use('/api', (req, res, next) => {
     if (req.method === 'POST' && (!req.body || typeof req.body !== 'object' || Array.isArray(req.body))) return res.status(400).json({ error: 'INVALID_JSON' });
@@ -77,8 +89,9 @@ export function createApp({ store, demo = false, secret, secure = false, origins
   app.get('/api/health', (req, res) => res.json({ status: 'ok', mode: demo ? 'demo' : 'database' }));
   app.get('/api/regulatory', (req,res)=>res.json(regulatory));
   const authLimit = rateLimit({ windowMs: 15 * 60_000, limit: 20, standardHeaders: 'draft-8', legacyHeaders: false });
-  const account = createAccountService({ store, mailer, accountKey });
-  googleRoutes(app,{store,control,secure,authLimit,googleFetch});
+  const emailPlatform=createEmailPlatform({control,fallback:mailer,demo,transportFactory:emailTransportFactory});
+  const account = createAccountService({ store, mailer, accountKey, emailPlatform });
+  googleRoutes(app,{store,control,secure,authLimit,googleFetch,onNewAccount:(user,origin)=>account.sendEvent(user,'welcome',origin)});
   account.publicRoutes(app, authLimit);
   app.post('/api/auth/register', authLimit, async (req, res) => {
     const { email, password, companyName } = req.body;
@@ -118,7 +131,7 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     const oldToken = sessionToken(req); if (oldToken) await store.deleteSession(hashToken(oldToken));
     await establishSession(store, res, user.id, secure); res.json({ company });
   });
-  adminRoutes(app,{control,store,billing,demo,secure,stripeFetch,requireMfa:requireOwnerMfa});
+  adminRoutes(app,{control,store,billing,demo,secure,stripeFetch,emailPlatform,requireMfa:requireOwnerMfa});
   app.use('/api', async (req, res, next) => {
     const token = sessionToken(req);
     const session = token ? await store.session(hashToken(token)) : null;
@@ -139,12 +152,15 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     next();
   });
   account.sessionRoutes(app, authLimit);
+  payUploadRoutes(app,payUploads);
+  companyBrandRoutes(app,store);
   app.post('/api/auth/logout', async (req, res) => {
     await store.deleteSession(hashToken(sessionToken(req)));
     res.clearCookie('equitensa_session', { path: '/', httpOnly: true, sameSite: 'strict', secure }); res.json({ ok: true });
   });
-  app.get('/api/me', (req, res) => res.json({ company: req.session.company, user: { email: req.session.user.email, role: req.session.user.role, emailVerified: !!req.session.user.email_verified_at, mfaEnabled: !!req.session.user.mfa_enabled }, demo }));
+  app.get('/api/me', async (req, res) => res.json({ company: req.session.company, user: { email: req.session.user.email, role: req.session.user.role, emailVerified: !!req.session.user.email_verified_at, mfaEnabled: !!req.session.user.mfa_enabled }, demo,mailDeliveryMode:await emailPlatform.mode(),verificationDelivery:!req.session.user.email_verified_at?await emailPlatform.verificationStatus(req.session.user.id):null }));
   billingRoutes(app,{store,demo,billing,getBilling:req=>effectivePayment(control,billing,demo,req),stripeFetch});
+  financeRoutes(app,{store,demo,accountKey,control});
   function yearValue(value) {
     const year = Number(value ?? 2026);
     if (!Number.isInteger(year) || year < 2000 || year > 2100) throw new Error('INVALID_YEAR');
@@ -155,7 +171,12 @@ export function createApp({ store, demo = false, secret, secure = false, origins
     const analysis = analyze(snapshot?.rows || []);
     res.json({ company: req.session.company, year, snapshot: snapshot ? { id: snapshot.id, source: snapshot.source, created_at: snapshot.created_at } : null, analysis, schedule: reportingSchedule(analysis.count), scheduleBasis: 'EU_DIRECTIVE_MINIMUM_NATIONAL_RULES_UNVERIFIED' });
   });
-  app.get('/api/integrations', (req, res) => res.json({ providers, csv: { status: 'available' }, guides: integrationGuides, requiredData, push: { status: 'available', endpoint: '/api/ingest/v1/employees', maxRecords: 10000, maxBytes: 4194304 } }));
+  app.get('/api/integrations', (req, res) => res.json({ providers, csv: { status: 'available' }, guides: integrationGuides, requiredData, push: { status: 'available', endpoint: '/api/ingest/v1/employees', maxRecords: 10000, maxBytes: payImportLimits.fileBytes } }));
+  app.get('/api/employer-context', async (req,res) => {
+    const snapshot = await store.latestSnapshot(req.session.company.id,yearValue(req.query.year));
+    const rows = snapshot?.rows || [];
+    res.json({snapshotId:snapshot?.id || null,categories:[...new Set(rows.map(r=>r.worker_category))].sort().map(category=>({category,titles:[...new Set(rows.filter(r=>r.worker_category===category).map(r=>r.job_title))].sort()}))});
+  });
   app.get('/api/workflow',async(req,res)=> {
     const year=yearValue(req.query.year),snapshot=await store.latestSnapshot(req.session.company.id,year), workflow=await store.getWorkflow(req.session.company.id,year);
     res.json({workflow,readiness:readiness(workflow,analyze(snapshot?.rows || []),snapshot)});
@@ -181,7 +202,7 @@ export function createApp({ store, demo = false, secret, secure = false, origins
   app.post('/api/import', async (req, res) => {
     const year = yearValue(req.body.year);
     let parsed,batch=null;
-    try {batch=await resolveBatch(req,store);if(batch&&batch.reporting_year!==year)throw new Error('BATCH_YEAR_MISMATCH');parsed=await parseImportInput(req.body);if(parsed.selectionRequired)throw new Error('IMPORT_SELECTION_REQUIRED');validateMapping(req.body.mapping,parsed.headers);}
+    try {batch=await resolveBatch(req,store);if(batch&&batch.reporting_year!==year)throw new Error('BATCH_YEAR_MISMATCH');parsed=await parseInput(req);if(parsed.selectionRequired)throw new Error('IMPORT_SELECTION_REQUIRED');validateMapping(req.body.mapping,parsed.headers);}
     catch(error){return res.status(422).json({error:error.message});}
     if(req.body.file && req.body.contextConfirmed!==true)return res.status(422).json({error:'IMPORT_CONFIRMATION_REQUIRED'});
     if(!parsed.rows.length || parsed.rows.length>10000)return res.status(422).json({error:'INVALID_ROW_COUNT'});
@@ -223,7 +244,7 @@ export function createApp({ store, demo = false, secret, secure = false, origins
   const qualityOf=(parsed,body)=>{const p=prepare(parsed,body);return {...assessQuality({headers:p.headers,rows:p.rows,records:p.records,mapping:p.mapping,decimalSeparator:p.decimalSeparator,applied:p.applied}),applied:p.applied};};
   const analysisLimit=rateLimit({windowMs:60_000,limit:40,standardHeaders:'draft-8',legacyHeaders:false,keyGenerator:req=>req.session?.company?.id??ipKeyGenerator(req.ip)});
   const assistLimit=rateLimit({windowMs:60*60_000,limit:15,standardHeaders:'draft-8',legacyHeaders:false,keyGenerator:req=>req.session?.company?.id??ipKeyGenerator(req.ip)});
-  const loadForAnalysis=async req=>{await resolveBatch(req,store);const parsed=await parseImportInput(req.body);if(parsed.selectionRequired)throw new Error('IMPORT_SELECTION_REQUIRED');return parsed;};
+  const loadForAnalysis=async req=>{await resolveBatch(req,store);const parsed=await parseInput(req);if(parsed.selectionRequired)throw new Error('IMPORT_SELECTION_REQUIRED');return parsed;};
   app.post('/api/import/quality',analysisLimit,async(req,res)=>{
     try {res.json(qualityOf(await loadForAnalysis(req),req.body));}
     catch(error){res.status(422).json({error:error.message});}
@@ -242,7 +263,7 @@ export function createApp({ store, demo = false, secret, secure = false, origins
   app.post('/api/import/preview',async(req,res)=>{
     try {
       await resolveBatch(req,store);
-      const parsed=await parseImportInput(req.body),year=yearValue(req.body.year);
+      const parsed=await parseInput(req),year=yearValue(req.body.year);
       if(parsed.selectionRequired)return res.json({...parsed,count:0});
       const {headers,rows}=parsed,suggested=suggestMapping(headers);
       const saved=await store.importProfile(req.session.company.id,structure(parsed,year,req.session.company.country));
@@ -251,10 +272,13 @@ export function createApp({ store, demo = false, secret, secure = false, origins
       res.json({...parsed,rows:rows.slice(0,30),count:rows.length,...suggested,mapping,savedProfile:saved?{version:saved.version,decimalSeparator:saved.document.decimalSeparator}:null,context,contextErrors:validateImportContext(headers,rows,{country:req.session.company.country,year}),quality:qualityOf(parsed,{mapping,decimalSeparator:saved?.document.decimalSeparator||context.decimalSeparator||'.'}),assistant:{available:assistant.available}});
     }catch(error){res.status(422).json({error:error.message});}
   });
-  payrollRoutes(app,{store,secret,yearValue});
+  payrollRoutes(app,{store,secret,yearValue,parseInput,inputPages:async function*(req,parsed){if(req.body.file?.uploadId){yield* payUploads.pages(req.session.company.id,req.body.file.uploadId,req.body);}else {for(let i=0;i<parsed.rows.length;i+=1000)yield parsed.rows.slice(i,i+1000);}}});
   workerRightsRoutes(app,{store,secret,yearValue});
   payCriteriaRoutes(app,{store,yearValue});
+  nationalReportRoutes(app,{store,secret,yearValue});
   evidenceRoutes(app,{store,yearValue});
+  employerControlRoutes(app,{store,yearValue});
+  lifecycleRoutes(app,{store,yearValue,demo});
   integrationKeyRoutes(app,{store});
   app.get('/api/reports/:format', async (req, res) => {
     const format = req.params.format;
@@ -278,9 +302,16 @@ export function createApp({ store, demo = false, secret, secure = false, origins
       const order=await store.activeOrder(company.id);
       if (!order || !['active','sandbox_active'].includes(order.status)) return res.status(402).json({error:'SUBSCRIPTION_REQUIRED'});
       const plan=plans.find(p=>p.id===order.plan);
-      if (!plan || snapshot.rows.length>plan.limit) return res.status(402).json({error:'PLAN_EMPLOYEE_LIMIT',limit:plan?.limit || 0});
-      if (!readiness(snapshot.workflow,analyze(snapshot.rows),snapshot).ready) return res.status(409).json({error:'REPORT_INCOMPLETE'});
+      const employeeLimit=(await store.companyDocument(company.id,`bc_${order.id}`))?.employeeLimit ?? ({prepare:250,growth:1000,scale:2500}[order.plan] || plan?.limit);
+      if (!plan || snapshot.rows.length>employeeLimit) return res.status(402).json({error:'PLAN_EMPLOYEE_LIMIT',limit:employeeLimit || 0});
+      const checks = readiness(snapshot.workflow,analyze(snapshot.rows),snapshot);
+      if (!checks.ready) return res.status(409).json({error:'REPORT_INCOMPLETE',missing:checks.missing});
+      if (type === 'assessment' && !checks.assessment.ready) return res.status(409).json({error:'ASSESSMENT_INCOMPLETE',missing:checks.assessment.missing});
       snapshot.prepared=true;
+    }
+    if (audience === 'internal') {
+      const controls=await store.companyDocument(company.id,`employer_controls_${year}`);
+      snapshot.workflow = {...snapshot.workflow, employerControls:{...controls,state:controlState(controls,snapshot.id),articles:directiveArticles,retentionPolicy:await store.companyDocument(company.id,'data_retention')}};
     }
     const mime = { xlsx:'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',json:'application/json',csv: 'text/csv', xml: 'application/xml', pdf: 'application/pdf', txt: 'text/plain', html: 'text/html; charset=utf-8' };
     const writers = type==='assessment' ? {xlsx:assessmentXlsx,json:assessmentJson,pdf:assessmentPdf,csv:assessmentCsv,xml:assessmentXml,txt:assessmentText,html:assessmentHtml} : {xlsx:reportXlsx,json:reportJson,pdf:reportPdf,csv:reportCsv,xml:reportXml,txt:reportText,html:reportHtml};

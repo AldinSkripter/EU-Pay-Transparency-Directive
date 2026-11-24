@@ -9,7 +9,7 @@ const cookieName='equitensa_google';
 const cookieOptions=secure=>({httpOnly:true,secure,sameSite:'lax',path:'/api/auth/google',maxAge:600_000});
 function browserToken(req){return (req.get('cookie')||'').split(';').map(v=>v.trim()).find(v=>v.startsWith(cookieName+'='))?.slice(cookieName.length+1)||'';}
 function binding(req){return hashToken(browserToken(req));}
-export function googleRoutes(app,{store,control,secure,authLimit,googleFetch=fetch}) {
+export function googleRoutes(app,{store,control,secure,authLimit,googleFetch=fetch,onNewAccount}) {
   const jwks=createRemoteJWKSet(new URL('https://www.googleapis.com/oauth2/v3/certs'),{[customFetch]:googleFetch,timeoutDuration:10_000});
   const config=async()=>((await control.read()).google||defaultGoogle());
   const valid=async(req,flow)=>{
@@ -89,6 +89,7 @@ export function googleRoutes(app,{store,control,secure,authLimit,googleFetch=fet
         const company={id:randomUUID(),name:req.body.companyName.trim(),country:req.body.country};
         user={id:randomUUID(),company_id:company.id,email:flow.email,password_hash:null,google_sub:flow.sub,role:'hr_manager',email_verified_at:new Date()};
         await store.createAccount(company,user);
+        await onNewAccount?.(user,req.get('origin'));
       }
       const old=sessionToken(req);if(old)await store.deleteSession(hashToken(old));
       await establishSession(store,res,user.id,secure);res.clearCookie(cookieName,cookieOptions(secure));

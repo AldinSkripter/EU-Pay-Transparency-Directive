@@ -58,6 +58,6 @@ test('UTF-16 BOM and explicit CP1250 preserve Slovenian letters without guessing
 });
 test('file limits, invalid base64 and unsupported binary input fail before import',async()=>{
   await assert.rejects(parseImportInput({file:{base64:'%%%'}}),/INVALID_FILE/);
-  await assert.rejects(parseImportInput({file:file(Buffer.alloc(4*1024*1024+1))}),/INVALID_FILE|PAYLOAD_TOO_LARGE/);
+  await assert.rejects(parseImportInput({file:file(Buffer.alloc(20*1024*1024+1))}),/INVALID_FILE|PAYLOAD_TOO_LARGE/);
   await assert.rejects(parseImportInput({file:file(Buffer.from([0,1,2,3]))}),/INVALID_CSV|INVALID_FILE/);
 });

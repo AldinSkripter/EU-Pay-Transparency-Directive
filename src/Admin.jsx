@@ -1,3 +1,4 @@
+import EmailSettings from './EmailSettings';
 import React,{useEffect,useMemo,useState,useRef} from 'react';
 import {LayoutDashboard,Building2,CreditCard,Users,ScrollText,ShieldCheck,ArrowUpRight,Search,LogOut,Menu,X,KeyRound,RefreshCw,CheckCircle2,Languages} from 'lucide-react';
 import {api,Logo,Button,Field,CheckField,Notice,Tag,plans} from './ui';
@@ -5,7 +6,7 @@ import './admin.css';
 import GoogleSettings from './GoogleSettings';
 import {AdminLang,useAdminLang,initialLang,saveLang,makeT,errorMessages,fallbackError} from './admin-i18n';
 
-const icons={overview:LayoutDashboard,companies:Building2,payments:CreditCard,authentication:KeyRound,owners:Users,security:ShieldCheck,audit:ScrollText};
+const icons={email:KeyRound,overview:LayoutDashboard,companies:Building2,payments:CreditCard,authentication:KeyRound,owners:Users,security:ShieldCheck,audit:ScrollText};
 const pages=Object.keys(icons);
 
 export default function Admin() {
@@ -32,8 +33,9 @@ function AdminApp() {
   const [session,setSession]=useState(null),[status,setStatus]=useState(null),[page,setPage]=useState('overview'),[mobile,setMobile]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(null),[notice,setNotice]=useState('');
   const [data,setData]=useState(null),[query,setQuery]=useState(''),[pagination,setPagination]=useState(1),[refresh,setRefresh]=useState(0);
   const [setupToken]=useState(()=>new URLSearchParams(location.hash.slice(1)).get('setup')||'');
-  const labels={overview:t('Platform overview'),companies:t('Companies & access'),payments:t('Stripe & billing'),authentication:t('Google sign-in'),owners:t('Owners & team'),security:t('Account security'),audit:t('Change log')};
-  const descriptions={overview:t('Your companies, subscriptions and operations in one place.'),payments:t('Connect Stripe, check prices and manage billing.'),authentication:t('Allow customers to register and sign in with a Google account.'),companies:t('Review companies and manage access to the platform.'),owners:t('Owner accounts are separate from customer users.'),security:t('Protect the owner account and prepare recovery codes.'),audit:t('See who changed settings and access.')};
+  const [mfaChallenge,setMfaChallenge]=useState(false);
+  const labels={email:t('Email and templates'),overview:t('Platform overview'),companies:t('Companies & access'),payments:t('Stripe & billing'),authentication:t('Google sign-in'),owners:t('Owners & team'),security:t('Account security'),audit:t('Change log')};
+  const descriptions={email:t('Manage email delivery, country templates and the local test inbox.'),overview:t('Your companies, subscriptions and operations in one place.'),payments:t('Connect Stripe, check prices and manage billing.'),authentication:t('Allow customers to register and sign in with a Google account.'),companies:t('Review companies and manage access to the platform.'),owners:t('Owner accounts are separate from customer users.'),security:t('Protect the owner account and prepare recovery codes.'),audit:t('See who changed settings and access.')};
   useEffect(()=>{if(setupToken)history.replaceState({},'','/admin');},[]);
   const loadSession=async()=>{const result=await api('/admin/me');setSession(result);if(result.mfaRequired)setPage('security');return result;};
   useEffect(()=>{let live=true;Promise.all([api('/admin/auth/status'),api('/admin/me').catch(e=>{if(e.message==='OWNER_AUTH_REQUIRED')return null;throw e;})]).then(([status,me])=>{if(live){setStatus(status);setSession(me);if(me?.mfaRequired)setPage('security');}}).catch(e=>{if(live)setError(e);});return()=>{live=false;};},[]);
@@ -57,10 +59,10 @@ function AdminApp() {
       <section className="panel admin-login-form"><span className="eyebrow">OWNER ACCESS</span><h2>{status.initialized?t('Owner sign-in'):t('Set up the owner account')}</h2><p>{status.initialized?t('Use an owner account; customer sign-in is separate.'):t('The first owner is set up with a one-time link from the server.')}</p>
         {error&&<Notice tone="error">{adminError(error)}</Notice>}
         {!status.initialized&&!setupToken?<Notice>{t('On the server run')} <code>npm run admin:setup</code> {t('and open the one-time link it prints. The link is valid for 30 minutes.')}</Notice>
-        :<form onSubmit={e=>{e.preventDefault();const body=Object.fromEntries(new FormData(e.currentTarget));perform(async()=>{await api(status.initialized?'/admin/auth/login':'/admin/auth/setup',status.initialized?body:{...body,token:setupToken});await loadSession();setStatus(s=>({...s,initialized:true}));});}}>
+        :<form onSubmit={e=>{e.preventDefault();const body=Object.fromEntries(new FormData(e.currentTarget));perform(async()=>{try{await api(status.initialized?'/admin/auth/login':'/admin/auth/setup',status.initialized?body:{...body,token:setupToken});}catch(error){if(error.message==='OWNER_LOGIN_MFA_REQUIRED')setMfaChallenge(true);throw error;}await loadSession();setMfaChallenge(false);setStatus(s=>({...s,initialized:true}));});}}>
           <Field label={t('Owner email')} name="email" type="email" autoComplete="username" required maxLength={255}/>
           <Field label={t('Password')} name="password" type="password" autoComplete={status.initialized?'current-password':'new-password'} minLength={status.initialized?1:14} maxLength={128} required hint={!status.initialized?t('At least 14 characters.'):null}/>
-          {status.initialized&&<Field label={t('2FA code (only if you turned 2FA on)')} name="code" autoComplete="one-time-code" maxLength={40} hint={t('Leave empty if two-factor sign-in is not turned on for this account. A recovery code also works here.')}/>}
+          {status.initialized&&mfaChallenge&&<Field label={t('2FA code (only if you turned 2FA on)')} name="code" autoComplete="one-time-code" maxLength={40} required hint={t('Leave empty if two-factor sign-in is not turned on for this account. A recovery code also works here.')}/>}
           <Button type="submit" busy={busy}>{status.initialized?t('Sign in'):t('Create owner account')}<ArrowUpRight size={16}/></Button>
         </form>}
         {status.demo&&<small>{t('Local panel · customer data is test data. Owner settings are stored encrypted across restarts.')}</small>}
@@ -86,7 +88,7 @@ function AdminApp() {
         :!data?<div className="panel admin-loading">{t('Loading overview…')}</div>
         :page==='overview'?<Overview data={data} go={go}/>
         :page==='payments'?<Payments key={data.revision} data={data} busy={busy} perform={perform} canWrite={canWrite} demo={session.demo} onSaved={result=>{setData(result);setNotice(t('Settings saved and used immediately for new payments.'));reload();}} setNotice={setNotice}/>
-        :page==='authentication'?<GoogleSettings key={data.revision} data={data} demo={session.demo} canWrite={canWrite} busy={busy} perform={perform} onSaved={result=>{setData(result);setNotice(t('Google settings saved. Check sign-in on every domain.'));reload();}}/>
+        :page==='email'?<EmailSettings key={data.revision} data={data} canWrite={canWrite} busy={busy} perform={perform} onSaved={result=>{setData(result);setNotice(t('Email settings saved. New emails use this configuration.'));reload();}}/>:page==='authentication'?<GoogleSettings key={data.revision} data={data} demo={session.demo} canWrite={canWrite} busy={busy} perform={perform} onSaved={result=>{setData(result);setNotice(t('Google settings saved. Check sign-in on every domain.'));reload();}}/>
         :page==='companies'?<Companies error={error} data={data} query={query} setQuery={v=>{setQuery(v);setPagination(1);}} page={pagination} setPage={setPagination} canWrite={canWrite} busy={busy} perform={perform} reload={reload}/>
         :page==='owners'?<Owners data={data} canWrite={canWrite} busy={busy} perform={perform} reload={reload}/>
         :<Audit data={data} page={pagination} setPage={setPagination}/>}

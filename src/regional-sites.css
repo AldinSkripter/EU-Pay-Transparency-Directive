@@ -1,0 +1,5 @@
+.regional-sites {display:flex;align-items:center;justify-content:center;gap:12px;flex-wrap:wrap;padding:24px;border-top:1px solid #e4deee;background:#faf9fd;color:#504663;font-size:14px}
+.regional-sites>span {margin-right:8px;font-weight:600}
+.regional-sites a {display:flex;flex-direction:column;gap:3px;padding:10px 16px;border:1px solid #e1d9ee;border-radius:12px;text-decoration:none;color:#34234d;background:white;font-weight:600}
+.regional-sites a small {color:#6b5d7b;font-size:12px;font-weight:400}
+.regional-sites a:hover,.regional-sites a:focus-visible {border-color:#7451f8;background:#f0eaff;outline:2px solid #7451f8;outline-offset:2px}

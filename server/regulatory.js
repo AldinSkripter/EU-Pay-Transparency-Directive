@@ -1,8 +1,8 @@
 import { obligation } from '../shared/plans.js';
 export const regulatory = {
   source:'https://eur-lex.europa.eu/eli/dir/2023/970/oj/eng',
-  version:'EU-2023-970-v1',
-  verifiedOn:'2026-11-01',
+  version:'EU-2023-970-v2',
+  verifiedOn:'2026-11-03',
   nationalSource:'https://eur-lex.europa.eu/legal-content/EN/NIM/?uri=CELEX:32023L0970',
   transpositionDeadline:'2026-06-07',
   indicators:['overall_gap','variable_gap','median_gap','median_variable_gap','variable_recipients','quartiles','equal_value_categories'],

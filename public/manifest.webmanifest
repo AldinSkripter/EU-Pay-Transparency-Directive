@@ -1,0 +1,21 @@
+{
+  "id": "/",
+  "name": "Equitensa · Pay & Finance",
+  "short_name": "Equitensa",
+  "description": "Pay und Finance in einem Arbeitsbereich.",
+  "lang": "de",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#f7f5fb",
+  "theme_color": "#7451f8",
+  "icons": [
+    {"src":"/icons/equitensa-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"/icons/equitensa-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"/icons/equitensa-maskable.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+  ],
+  "shortcuts": [
+    {"name":"Equitensa Pay","url":"/"},
+    {"name":"Equitensa Finance","url":"/finance"}
+  ]
+}

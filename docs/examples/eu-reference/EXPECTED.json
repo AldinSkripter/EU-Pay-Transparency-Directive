@@ -1,0 +1,31 @@
+{
+  "synthetic": true,
+  "expectedArticle9": {
+    "a": {
+      "hourly": -90.9091,
+      "annual": 52.2727
+    },
+    "b": {
+      "hourly": 0,
+      "annual": 75
+    },
+    "c": {
+      "hourly": -90.9091,
+      "annual": 52.2727
+    },
+    "d": {
+      "hourly": 0,
+      "annual": 75
+    },
+    "e": {
+      "male_percent": 100,
+      "female_percent": 50
+    },
+    "g": {
+      "base_gap_hourly": -100,
+      "variable_gap_hourly": 0,
+      "base_gap_annual": 50,
+      "variable_gap_annual": 75
+    }
+  }
+}

@@ -90,7 +90,7 @@ test('ZIP container: one file is opened directly, several need a choice, safety 
   expectTable(await parse(makeZip([{ name: 'Lohn.xlsx', data: inner }])), 'xlsx');
   await assert.rejects(parse(makeZip([{ name: 'inner.zip', data: makeZip([{ name: 'x.csv', data: csv }]) }])), /UNSUPPORTED_FILE_FORMAT/, 'no archives inside archives');
   await assert.rejects(parse(makeZip([{ name: 'lohn.csv', data: csv, flags: 1 }])), /UNSAFE_WORKBOOK/, 'encrypted entry');
-  await assert.rejects(parse(makeZip([{ name: 'big.csv', data: Buffer.alloc(9 * 1024 * 1024, 0x41) }])), /PAYLOAD_TOO_LARGE/, 'bigger than the 8 MB limit once unpacked');
+  await assert.rejects(parse(makeZip([{ name: 'big.csv', data: Buffer.alloc(21 * 1024 * 1024, 0x41) }])), /PAYLOAD_TOO_LARGE/, 'bigger than the 20 MB selected-entry limit once unpacked');
   await assert.rejects(parse(makeZip([{ name: 'empty/', data: '' }])), /UNSUPPORTED_FILE_FORMAT/);
 });
 

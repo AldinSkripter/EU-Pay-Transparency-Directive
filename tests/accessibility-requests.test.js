@@ -1,3 +1,4 @@
+import { documentedEvaluation } from './helpers.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { once } from 'node:events';
@@ -117,18 +118,19 @@ test('evidence register (Art. 18(2)): reflects only what was recorded, in the co
   assert.equal(state('Art. 5'), 'Offen');
   assert.equal(state('Art. 7 Abs. 3'), 'Offen');
   assert.equal(state('Art. 9 ·'), 'Teilweise', 'data imported but not yet confirmed by management');
-  assert.equal(state('Art. 8'), 'Erfüllt');
+  assert.equal(state('Art. 8'), 'Teilweise', 'available formats alone do not prove accessible delivery');
 
   const snapshot = (await (await call('/analysis?year=2026')).json()).snapshot;
   const criteria = { skills: 'a', effort: 'b', responsibility: 'c', conditions: 'd' };
-  await call('/workflow', { year: 2026, workflow: { snapshotId: snapshot.id, profile: { legalName: 'Firma', headcount: 12, payrollComplete: true }, classification: { Team: criteria }, criteriaAgreement: { status: 'agreed', note: '' }, reviews: { Team: { explanation: 'Dienstalter', justified: true } }, approval: { manager: 'Dr. Muster', representatives: 'Betriebsrat 12.5.', confirmed: true, consulted: true }, reportingDate: '2027-05-30' } });
+  await call('/workflow', { year: 2026, workflow: { snapshotId: snapshot.id, profile: { legalName: 'Firma', headcount: 12, payrollComplete: true }, jobEvaluation:documentedEvaluation(['Team']), classification: { Team: criteria }, criteriaAgreement: { status: 'agreed', note: '' }, reviews: { Team: { explanation: 'Dienstalter', justified: true } }, approval: { manager: 'Dr. Muster', representatives: 'Betriebsrat 12.5.', confirmed: true, consulted: true }, reportingDate: '2027-05-30' } });
   await call('/pay-criteria', { ranges: { Team: { min: 40000, max: 50000, agreement: '' } }, progression: 'jährlich' });
   await call('/rights-notice', { year: 2026, contact: 'hr@firma.test', sentOn: today });
   const request = (await (await call('/requests', { receivedOn: today, channel: 'worker', requesterLabel: 'A.B.' })).json()).request;
   await call(`/requests/${request.id}/close`, { answeredOn: today, summary: 'Antwort versendet' });
 
+  await call('/employer-controls', {year:2026,document:{snapshotId:snapshot.id,records:Object.fromEntries(['recruitment','criteriaAccess','accessibility','distribution'].map(id=>[id,{status:'recorded',owner:'Synthetic HR',reviewedOn:today,evidence:'Synthetic implementation and delivery receipt'}]))}});
   const done = await (await call('/evidence/json?year=2026')).json();
-  for (const label of ['Art. 4 Abs. 4', 'Art. 5', 'Art. 6', 'Art. 7 Abs. 3', 'Art. 7 und', 'Art. 9 ·', 'Art. 10']) assert.equal(done.evidence.rows.find(r => r[0].includes(label))[1], 'Erfüllt', label);
+  for (const label of ['Art. 4 Abs. 4', 'Art. 5', 'Art. 6', 'Art. 7 Abs. 3', 'Art. 7 und', 'Art. 9 ·', 'Art. 10']) assert.equal(done.evidence.rows.find(r => r[0].includes(label))[1], 'Dokumentiert', label);
   assert.equal(done.evidence.duty.band, '<100');
 
   const txt = await (await call('/evidence/txt?year=2026')).text();

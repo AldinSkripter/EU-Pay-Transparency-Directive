@@ -2,7 +2,7 @@ import { createHmac } from 'node:crypto';
 import { obligation } from '../shared/plans.js';
 
 function numeric(value, field, { min = 0, max = 1e9 } = {}) {
-  if (value === '' || value === null || value === undefined || typeof value === 'boolean') throw new Error(`INVALID_${field}`);
+  if (!['number', 'string'].includes(typeof value) || (typeof value === 'string' && !value.trim())) throw new Error(`INVALID_${field}`);
   const n = Number(value);
   if (!Number.isFinite(n) || n < min || n > max) throw new Error(`INVALID_${field}`);
   return n;
@@ -42,7 +42,7 @@ const median = values => {
   return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
 };
 const gap = (male, female) => male === null || female === null || male === 0 ? null : (male - female) / male * 100;
-const round = n => n === null ? null : Number(n.toFixed(4));
+const round = n => !Number.isFinite(n) ? null : Number(n.toFixed(4));
 // Directive (EU) 2023/970 Art. 10(1)(a): a joint pay assessment is triggered when the pay reporting shows a
 // difference in the average pay level between women and men of at least 5 % in any category of workers.
 // Pay level = gross annual pay and the corresponding gross hourly pay (Art. 3(1)(a)-(b)), so the alarm looks at
@@ -61,6 +61,9 @@ function groupMetrics(rows, minimum = 5) {
     count: rows.length, male_count: males.length, female_count: females.length, other_count: rows.filter(r => r.gender === 'O').length,
     suppressed, comparable, review_gap_hourly: round(reviewHourly), review_gap_annual: round(reviewAnnual),
     review_required: [reviewHourly, reviewAnnual].some(value => value !== null && Math.abs(value) + 1e-9 >= REVIEW_THRESHOLD_PERCENT),
+    // Art. 9(10): explanation/remedy is not limited to the Art. 10 five-percent trigger.
+    // Compare components as well: equal totals can conceal offsetting differences.
+    explanation_required: comparable && ['base_annual', 'bonuses_annual', 'base_hourly', 'variable_hourly'].some(field => Math.abs(mean(males.map(r => r[field])) - mean(females.map(r => r[field]))) > 1e-8),
     mean_gap: g('total_hourly'), median_gap: g('total_hourly', median),
     base_gap: g('base_hourly'), variable_gap: g('variable_hourly'), median_variable_gap: g('variable_hourly', median),
     annual_mean_gap: suppressed ? null : round(gap(mean(males.map(r => r.base_annual + r.bonuses_annual)), mean(females.map(r => r.base_annual + r.bonuses_annual)))),
@@ -82,16 +85,19 @@ export function analyze(rows, { suppress = true } = {}) {
     const metrics = groupMetrics(rows.filter(r => r.worker_category === category), minimum);
     return { category, ...metrics };
   });
-  // Stable identifier tie-breaker makes quartile boundaries reproducible. Other gender
-  // records remain in headcount but are excluded from the statutory M/F comparison.
-  const sorted = rows.filter(r => ['M', 'F'].includes(r.gender)).sort((a, b) => a.total_hourly - b.total_hourly || a.anonymized_id.localeCompare(b.anonymized_id));
-  const quartiles = Array.from({ length: 4 }, (_, i) => {
-    const band = sorted.slice(Math.floor(i * sorted.length / 4), Math.floor((i + 1) * sorted.length / 4));
-    const males = band.filter(r => r.gender === 'M').length, females = band.length - males;
-    const suppressed = males < minimum || females < minimum;
-    return { quartile: i + 1, count: band.length, suppressed, male_percent: suppressed ? null : round(males / band.length * 100), female_percent: suppressed ? null : round(females / band.length * 100) };
-  });
-  return { ...overall, groups, quartiles, review_count: groups.filter(g => g.review_required).length, methodology: 'annual-pay / declared-annual-paid-hours; unadjusted M/F; minimum subgroup 5; stable quartile ties; version 1' };
+  // Art. 3(1)(f): rank all workers into four bands. M/F averages compare only M and F,
+  // but another registered gender must not disappear from band populations or count as female.
+  const bands = pay => {
+    const sorted = [...rows].sort((a, b) => pay(a) - pay(b) || a.anonymized_id.localeCompare(b.anonymized_id));
+    return Array.from({ length: 4 }, (_, i) => {
+      const band = sorted.slice(Math.floor(i * sorted.length / 4), Math.floor((i + 1) * sorted.length / 4));
+      const males = band.filter(r => r.gender === 'M').length, females = band.filter(r => r.gender === 'F').length;
+      const suppressed = males < minimum || females < minimum;
+      return { quartile: i + 1, count: band.length, suppressed, male_percent: suppressed ? null : round(males / band.length * 100), female_percent: suppressed ? null : round(females / band.length * 100) };
+    });
+  };
+  const quartiles = bands(r => r.total_hourly), annual_quartiles = bands(r => r.base_annual + r.bonuses_annual);
+  return { ...overall, groups, quartiles, annual_quartiles, review_count: groups.filter(g => g.review_required).length, methodology: 'annual-pay / declared-annual-paid-hours; unadjusted M/F; minimum subgroup 5; separate hourly/annual quartiles; stable quartile ties; version 2' };
 }
 export function reportingSchedule(count) {
   const duty = obligation(count);

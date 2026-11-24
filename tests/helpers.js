@@ -1,6 +1,11 @@
 // Registration leaves the account unverified. Tests that are not about verification mark every user verified.
 export const verifyAll = store => { for (const user of store.users.values()) user.email_verified_at ??= new Date(); };
 
+// Explicit synthetic employer evidence, never generated from a calculated compliance result.
+export const documentedEvaluation = categories => ({ mode: 'documented', methodology: 'Synthetic objective comparison of skills, effort, responsibility and working conditions', reference: 'Synthetic evaluation v1', assessedBy: 'Synthetic HR evaluator', assessedOn: '2026-01-01', genderNeutralConfirmed: true,
+  categories: Object.fromEntries(categories.map(category => [category, { rationale: 'Synthetic roles have comparable demands under the documented four-factor methodology.', evidence: 'Synthetic role descriptions and evaluation record v1.' }])) });
+export const completedRemediation = snapshotId => ({ completedOn: '2020-03-01', evidence: 'Synthetic payroll correction reference', verifiedBy: 'Synthetic HR', verifiedOn: '2020-04-01', verification: 'Synthetic before/after comparison confirms correction', targetSnapshotId: snapshotId });
+
 // Minimal ZIP writer for tests (the project only ships a reader). `flags` lets a test mark an entry encrypted.
 import { deflateRawSync, crc32 } from 'node:zlib';
 export function makeZip(entries) {

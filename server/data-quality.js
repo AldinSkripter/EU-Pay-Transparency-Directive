@@ -1,7 +1,7 @@
 // Data quality assistant for imports. Everything here is deterministic and runs without any external service.
 // It does two things: it finds what is wrong or suspicious in the mapped data (assessQuality) and it applies the
 // corrections the user chose (validateFixes + prepareRecords). Nothing is changed silently: every correction is an
-// explicit entry in `fixes` that the user selected, and the original file is never modified or stored.
+// explicit entry in `fixes` that the user selected, and the source is never modified; chunk uploads are temporarily retained encrypted until deletion/expiry.
 import { importFields, foldKey, genderCode } from './importer.js';
 import { SMALL_GROUP_MINIMUM } from './pay.js';
 

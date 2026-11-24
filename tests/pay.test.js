@@ -11,6 +11,10 @@ test('annual payroll preserves 14 payments and fractional contract hours', () =>
   assert.notEqual(employee.total_hourly, calculateFteHourlyRate(3000, 0, 38.5));
 });
 test('invalid numeric values fail instead of becoming zero or infinity', () => {
+  for (const value of [' ', '\t', [], [100], {}, true, false]) {
+    assert.throws(() => normalizeEmployee(row({ base_annual: value }), 'a', secret), /INVALID_BASE_ANNUAL/);
+    assert.throws(() => normalizeEmployee(row({ bonuses_annual: value }), 'a', secret), /INVALID_BONUSES_ANNUAL/);
+  }
   for (const value of [0,-1,'',null,undefined,Infinity,NaN,true]) assert.throws(() => normalizeEmployee(row({ paid_hours_annual: value }), 'a', secret));
   assert.throws(() => normalizeEmployee(row({ gender: 'unknown' }), 'a', secret));
   assert.throws(() => calculateFteHourlyRate(1000, 0, 0));
@@ -39,7 +43,7 @@ test('small subgroups are suppressed and other gender records stay in headcount'
   assert.equal(result.count, 3); assert.equal(result.other_count, 1);
   assert.equal(result.mean_gap, null); assert.equal(result.review_count, 0);
   assert.equal(result.groups[0].suppressed, true);
-  assert.equal(result.quartiles.reduce((n,q) => n+q.count,0),2);
+  assert.equal(result.quartiles.reduce((n,q) => n+q.count,0),3);
 });
 test('reporting schedule changes at the EU headcount thresholds', () => {
   assert.equal(reportingSchedule(99).first_due,null);

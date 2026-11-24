@@ -43,7 +43,8 @@ export function article9(analysis, { country, audience = 'internal' }) {
     c: { hourly: analysis.median_gap, annual: analysis.annual_median_gap },
     d: { hourly: analysis.median_variable_gap, annual: analysis.annual_median_variable_gap },
     e: { male_percent: analysis.male_variable_receivers, female_percent: analysis.female_variable_receivers },
-    f: analysis.quartiles.map(q => ({ quartile: q.quartile, count: q.count, suppressed: q.suppressed, male_percent: q.male_percent, female_percent: q.female_percent })),
+    f: analysis.quartiles.map((q, i) => ({ quartile: q.quartile, count: q.count, suppressed: q.suppressed, male_percent: q.male_percent, female_percent: q.female_percent,
+      annual_count: analysis.annual_quartiles[i].count, annual_suppressed: analysis.annual_quartiles[i].suppressed, annual_male_percent: analysis.annual_quartiles[i].male_percent, annual_female_percent: analysis.annual_quartiles[i].female_percent })),
     g: analysis.groups.map(g => ({ category: g.category, count: g.count, male_count: g.male_count, female_count: g.female_count, suppressed: g.suppressed, comparable: g.comparable, base_gap_hourly: g.base_gap, variable_gap_hourly: g.variable_gap, mean_gap_hourly: g.mean_gap, base_gap_annual: g.annual_base_gap, variable_gap_annual: g.annual_variable_gap,
       // The Art. 10 assessment is the employer's own working view; it is not part of what other recipients get.
       ...(audience === 'internal' ? { review_required: g.review_required, review_gap_hourly: g.review_gap_hourly, review_gap_annual: g.review_gap_annual } : {}) })),

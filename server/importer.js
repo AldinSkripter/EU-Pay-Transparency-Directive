@@ -1,4 +1,5 @@
 import { parse } from 'csv-parse/sync';
+import {payImportLimits} from '../shared/pay-import-limits.js';
 
 export const importFields = ['internal_id','gender','job_title','worker_category','job_category_kv','base_annual','bonuses_annual','paid_hours_annual','hours_per_week'];
 const aliases = {
@@ -19,7 +20,7 @@ const localHeader = header => header.split('.').at(-1).replace(/^@/,'').split(':
 const matchesHeader = (header,alias) => key(header)===key(alias) || key(localHeader(header))===key(alias);
 
 export function parseDelimited(text) {
-  if (typeof text !== 'string' || !text.trim() || Buffer.byteLength(text) > 4 * 1024 * 1024 || /[\u0000-\u0008\u000e-\u001f]/.test(text)) throw new Error('INVALID_CSV');
+  if (typeof text !== 'string' || !text.trim() || Buffer.byteLength(text) > payImportLimits.fileBytes || /[\u0000-\u0008\u000e-\u001f]/.test(text)) throw new Error('INVALID_CSV');
   const candidates = [];
   for (const delimiter of [',',';','\t','|']) {
     try {
@@ -38,7 +39,7 @@ export function parseDelimited(text) {
 // that stay blank in every line; header names come from the first line. The preview shows the result and
 // the user confirms the mapping, so a wrong split is visible before anything is imported.
 export function parseFixedWidth(text) {
-  if (typeof text !== 'string' || Buffer.byteLength(text) > 4 * 1024 * 1024 || /[\u0000-\u0008\u000e-\u001f]/.test(text)) throw new Error('INVALID_CSV');
+  if (typeof text !== 'string' || Buffer.byteLength(text) > payImportLimits.fileBytes || /[\u0000-\u0008\u000e-\u001f]/.test(text)) throw new Error('INVALID_CSV');
   const lines = text.replace(/^\uFEFF/, '').split(/\r\n|\n|\r/).filter(line => line.trim());
   if (lines.length < 2 || lines.length > 10001) throw new Error('INVALID_CSV');
   const width = Math.max(...lines.map(line => line.length));

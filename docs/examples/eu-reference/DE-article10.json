@@ -1,0 +1,88 @@
+{
+  "schema": "urn:equitensa:internal:assessment:v1",
+  "status": "DRAFT_UNVERIFIED",
+  "language": "de",
+  "company": {
+    "name": "SYNTHETIC EXAMPLE DE — not a real company",
+    "country": "DE"
+  },
+  "reportingYear": 2026,
+  "snapshotId": "synthetic-reference-2026",
+  "rulesVersion": "EU-2023-970-v2",
+  "source": "https://eur-lex.europa.eu/eli/dir/2023/970/oj/eng",
+  "officialSubmission": false,
+  "audience": "authority",
+  "thresholdPercent": 5,
+  "reportingDate": null,
+  "categories": [
+    {
+      "category": "Reference category",
+      "proportion": {
+        "total": 16,
+        "men": 8,
+        "women": 8,
+        "other": 0,
+        "menPercent": 50,
+        "womenPercent": 50
+      },
+      "averagePay": {
+        "men": {
+          "annual": 66000,
+          "hourly": 33,
+          "baseAnnual": 60000,
+          "baseHourly": 30,
+          "variableAnnual": 6000,
+          "variableHourly": 3
+        },
+        "women": {
+          "annual": 31500,
+          "hourly": 63,
+          "baseAnnual": 30000,
+          "baseHourly": 60,
+          "variableAnnual": 1500,
+          "variableHourly": 3
+        }
+      },
+      "gaps": {
+        "hourly": -90.9091,
+        "annual": 52.2727
+      },
+      "comparable": true,
+      "protected": false,
+      "atOrAboveThreshold": true,
+      "reasons": "Synthetic example: pay differences require correction.",
+      "justified": false,
+      "leaveReturn": null,
+      "leaveOutcomes": {
+        "applicable": true,
+        "note": "Synthetic eligible returners only.",
+        "protected": false,
+        "men": {
+          "eligible": 8,
+          "benefited": 4,
+          "percent": 50
+        },
+        "women": {
+          "eligible": 8,
+          "benefited": 6,
+          "percent": 75
+        }
+      },
+      "measures": {
+        "action": "Synthetic adjustment plan",
+        "owner": "Synthetic HR",
+        "due": "2027-05-01",
+        "remedied": false
+      }
+    }
+  ],
+  "previousMeasures": "First synthetic assessment: no earlier measures to evaluate.",
+  "jointReviewConfirmed": true,
+  "completeness": {
+    "ready": true,
+    "missing": []
+  },
+  "categoriesAtOrAboveThreshold": [
+    "Reference category"
+  ]
+}

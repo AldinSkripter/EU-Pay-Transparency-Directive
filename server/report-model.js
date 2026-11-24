@@ -3,6 +3,8 @@ import { article9, article9Rows } from './article9.js';
 import { readiness } from './workflow.js';
 import { regulatory } from './regulatory.js';
 import { reportLanguage, reportLocale, texts, countryNames } from './report-i18n.js';
+import { evaluationSections } from './employer-input.js';
+import { controlSections } from './employer-controls.js';
 
 // Art. 12(3): small groups are only protected for workers and the public. The monitoring body (Art. 29) and the
 // employer's own view receive the information without restriction.
@@ -30,7 +32,7 @@ export function workforce(rows) {
 
 // Art. 9(6): accuracy confirmed by management after consulting workers' representatives.
 export function confirmationOf(snapshot) {
-  const w = snapshot.workflow?.snapshotId ? snapshot.workflow : {}, a = w.approval || {}, audience = audienceOf(snapshot);
+  const w = snapshot.workflow?.snapshotId === snapshot.id ? snapshot.workflow : {}, a = w.approval || {}, audience = audienceOf(snapshot);
   return {
     confirmed: !!a.confirmed, consulted: !!a.consulted, reportingDate: w.reportingDate || null,
     ...(knowsNames(audience) ? { manager: a.manager || null } : {}),
@@ -89,9 +91,14 @@ export function buildDocument(company, snapshot) {
     rows: [[`(e) ${by.e.title}`, pct(by.e.values.male_percent), pct(by.e.values.female_percent)]],
     widths: [0.6, 0.2, 0.2],
   } });
-  sections.push({ id: 'quartiles', title: `(f) ${by.f.title}`, table: {
+  sections.push({ id: 'quartiles', title: `(f) ${by.f.title} · ${t.hourly}`, table: {
     head: [t.quartile, t.menShort, t.womenShort, t.count],
     rows: by.f.values.map(q => [`Q${q.quartile}`, q.suppressed ? `— (${t.protectedValue})` : pct(q.male_percent), q.suppressed ? `— (${t.protectedValue})` : pct(q.female_percent), String(q.count)]),
+    widths: [0.25, 0.25, 0.25, 0.25],
+  } });
+  sections.push({ id: 'quartiles-annual', title: `(f) ${by.f.title} · ${t.annual}`, table: {
+    head: [t.quartile, t.menShort, t.womenShort, t.count],
+    rows: by.f.values.map(q => [`Q${q.quartile}`, q.annual_suppressed ? `— (${t.protectedValue})` : pct(q.annual_male_percent), q.annual_suppressed ? `— (${t.protectedValue})` : pct(q.annual_female_percent), String(q.annual_count)]),
     widths: [0.25, 0.25, 0.25, 0.25],
   } });
   if (by.g) {
@@ -104,6 +111,11 @@ export function buildDocument(company, snapshot) {
       }),
       widths: internal ? [0.28, 0.14, 0.18, 0.16, 0.16, 0.08] : [0.32, 0.14, 0.18, 0.18, 0.18],
     } });
+    sections.push({ id: 'categories-annual', title: `(g) ${by.g.title} · ${t.annual}`, table: {
+      head: [t.category, `${t.menShort} / ${t.womenShort}`, `${t.base} (${t.annual})`, `${t.variable} (${t.annual})`],
+      rows: by.g.values.map(g => [g.category, `${g.male_count} / ${g.female_count}`, g.suppressed ? `— (${t.protectedValue})` : pct(g.base_gap_annual), g.suppressed ? `— (${t.protectedValue})` : pct(g.variable_gap_annual)]),
+      widths: [0.34, 0.18, 0.24, 0.24],
+    } });
   }
 
   sections.push({ id: 'confirmation', title: t.confirmation, paragraphs: [t.confirmationText], items: [
@@ -115,7 +127,7 @@ export function buildDocument(company, snapshot) {
   ] });
 
   if (audience === 'internal') {
-    const ten = article10Of(analysis, snapshot.workflow), flagged = ten.categories.filter(c => c.atOrAboveThreshold);
+    const ten = article10Of(analysis, snapshot.workflow?.snapshotId === snapshot.id ? snapshot.workflow : {}), flagged = ten.categories.filter(c => c.atOrAboveThreshold);
     const view = readiness(snapshot.workflow, analysis, snapshot);
     sections.push({ id: 'article10', title: t.assessment, paragraphs: [t.assessmentIntro, flagged.length ? '' : t.assessmentNone].filter(Boolean), ...(flagged.length ? { table: {
       head: [t.category, t.gapHourly, t.gapAnnual, t.justified, t.remedied, t.deadline, t.required],
@@ -125,16 +137,27 @@ export function buildDocument(company, snapshot) {
   }
 
   const history = historyOf(company, snapshot);
-  if (audience !== 'public') sections.push({ id: 'history', title: t.history, paragraphs: [history.length ? history.map(h => `${h.year} (${h.workforce.total}): ${['a', 'c'].map(l => `(${l}) ${pct(h.indicators.find(i => i.letter === l).values.hourly)}`).join(' · ')}`).join('\n') : t.historyNone] });
+  if (audience !== 'public') {
+    sections.push({ id: 'history', title: t.history, paragraphs: history.length ? [] : [t.historyNone] });
+    for (const h of history) {
+      // Use exactly the same recipient filtering and complete tables as the current year.
+      const previous = buildDocument(company, { id: `${snapshot.id}:${h.year}`, reporting_year: h.year, rows: snapshot.history.find(entry => entry.year === h.year).rows, audience });
+      for (const section of previous.sections.filter(s => ['indicators', 'recipients', 'quartiles', 'quartiles-annual', 'categories', 'categories-annual'].includes(s.id))) {
+        sections.push({ ...section, id: `history-${h.year}-${section.id}`, title: `${h.year} · ${section.title || '(e)'}` });
+      }
+    }
+  }
 
-  const w = snapshot.workflow?.snapshotId ? snapshot.workflow : null;
+  const w = snapshot.workflow?.snapshotId === snapshot.id ? snapshot.workflow : null;
   if (audience === 'internal' && w) {
+    sections.push(...evaluationSections(w.jobEvaluation, language));
     sections.push({ id: 'review', title: t.review, items: [
       [t.legalEntity, w.profile?.legalName || '—'], [t.confirmedHeadcount, String(w.profile?.headcount ?? '—')], [t.payrollComplete, yesNo(w.profile?.payrollComplete)],
       [t.criteriaAgreement, ({ agreed: t.criteriaAgreed, no_representatives: t.criteriaNoRepresentatives, pending: t.criteriaPending })[w.criteriaAgreement?.status] || '—'],
       ...analysis.groups.flatMap(g => [
         ...Object.entries(w.classification?.[g.category] || {}).map(([key, value]) => [`${g.category} · ${criteriaLabels[language][key] || key}`, value || '—']),
         ...Object.entries({ [t.reasons]: w.reviews?.[g.category]?.explanation, [t.action]: w.reviews?.[g.category]?.action, [t.owner]: w.reviews?.[g.category]?.owner, [t.due]: w.reviews?.[g.category]?.due }).filter(([, v]) => v).map(([key, value]) => [`${g.category} · ${key}`, value]),
+        ...Object.entries(w.reviews?.[g.category]?.proof || {}).filter(([, value]) => value).map(([key, value]) => [`${g.category} · ${t.proofLabels[key] || key}`, value]),
       ]),
     ] });
   }
@@ -144,6 +167,7 @@ export function buildDocument(company, snapshot) {
   if (audience === 'public') notes.push(t.publicLimit);
   notes.push(t.notOfficial, `${t.source}: ${regulatory.source}`);
   sections.push({ id: 'methodology', title: t.methodology, paragraphs: notes });
+  if (audience === 'internal') sections.push(...controlSections(snapshot.workflow?.employerControls, language, snapshot.id));
 
   return { language, title: t.title, subtitle: t.subtitle, status: statusText(t, snapshot), sections, coverLine: `${company.name} · ${snapshot.reporting_year} · ${countryNames[language][company.country]}`, recipientLine: `${t.recipient}: ${t.recipients[audience]}`, keyFigures: [[`(a) ${t.hourly}`, pct(by.a.values.hourly)], [`(c) ${t.hourly}`, pct(by.c.values.hourly)]] };
 }

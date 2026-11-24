@@ -1,5 +1,8 @@
 // German texts for the owner panel UI (English source text is the key). Errors live in admin-i18n.js.
 export const deUi={
+  'Email and templates':'E-Mail und Vorlagen',
+  'Email settings saved. New emails use this configuration.':'E-Mail-Einstellungen gespeichert. Neue E-Mails verwenden diese Konfiguration.',
+  'Manage email delivery, country templates and the local test inbox.':'E-Mail-Versand, Ländervorlagen und lokalen Testposteingang verwalten.',
   'Equitensa · Administration':'Equitensa · Administration',
   'Language':'Sprache',
   'Loading the administration…':'Die Administration wird geladen …',

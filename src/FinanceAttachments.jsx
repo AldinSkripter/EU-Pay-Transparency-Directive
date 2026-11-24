@@ -1,0 +1,8 @@
+import React,{useRef,useState} from 'react';
+import {Paperclip,Download,Check,Upload} from 'lucide-react';
+
+export default function FinanceAttachments({expenseId,files,L,busy,onUpload}){
+  const [error,setError]=useState(''),input=useRef(null);
+  const upload=async e=>{const file=e.target.files?.[0];if(!file)return;setError('');if(file.size>2000000||! /\.(pdf|png|jpe?g)$/i.test(file.name)){setError(L('PDF, PNG oder JPEG bis 2 MB auswählen.','Izberite PDF, PNG ali JPEG do 2 MB.'));return;}const reader=new FileReader();reader.onerror=()=>setError(L('Datei konnte nicht gelesen werden.','Datoteke ni mogoče prebrati.'));reader.onload=async()=>{await onUpload(expenseId,{filename:file.name,data:String(reader.result).split(',')[1]});input.current.value='';};reader.readAsDataURL(file);};
+  return <section className="fa-receipts"><header><span><Paperclip size={14}/>{L('Originalbelege','Izvirni dokumenti')}<b>{files.length}</b></span><input ref={input} type="file" hidden accept=".pdf,.png,.jpg,.jpeg,application/pdf,image/png,image/jpeg" onChange={upload}/><button type="button" disabled={busy} onClick={()=>input.current.click()}><Upload size={13}/>{L('Beleg hinzufügen','Dodaj dokument')}</button></header>{error&&<p role="alert">{error}</p>}<div>{files.map(file=><a key={file.id} href={`/api/finance/attachments/${file.id}`}><span className="fa-file-type">{file.extension.toUpperCase()}</span><span><strong>{file.filename}</strong><small>{Math.ceil(file.size/1000)} KB · SHA-256 {file.sha256.slice(0,12)}…</small></span><Check size={13}/><Download size={14}/></a>)}</div>{!files.length&&<p>{L('PDF oder Foto des Originals hinzufügen. Bis 2 MB je Datei.','Dodajte PDF ali fotografijo izvirnika. Do 2 MB na datoteko.')}</p>}</section>;
+}

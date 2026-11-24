@@ -6,7 +6,7 @@ import * as XLSX from 'xlsx';
 import iconv from 'iconv-lite';
 import { createApp } from '../server/app.js';
 import { MemoryStore } from '../server/store.js';
-import { verifyAll } from './helpers.js';
+import { verifyAll, documentedEvaluation } from './helpers.js';
 
 // End to end: register a company per country, import data in the format that country's systems export, document
 // the review, approve, then export every document for every recipient and check content, language and rules.
@@ -70,7 +70,9 @@ async function prepareCompany({ store, request }, country) {
   const analysis = await (await request('/analysis?year=2026', cookie)).json();
   const classification = Object.fromEntries(['Engineering', 'Small', 'Support'].map(c => [c, { skills: `${c} skills`, effort: `${c} effort`, responsibility: `${c} responsibility`, conditions: `${c} conditions` }]));
   const workflow = {
+    jobEvaluation: documentedEvaluation(['Engineering', 'Small', 'Support']),
     snapshotId: analysis.snapshot.id, reportingDate: '2020-01-31',
+    criteriaAgreement: { status: 'agreed', note: 'Works council agreement recorded' },
     profile: { legalName: `Muster ${country} GmbH`, headcount: 200, payrollComplete: true }, classification,
     reviews: { Engineering: { explanation: 'Seniority mix is being reviewed', action: 'Salary adjustment', owner: 'HR lead', due: '2027-03-01', justified: false }, Small: { explanation: 'Different job levels, documented with the works council', justified: true } },
     approval: { manager: 'Dr. Managing Director', representatives: 'Works council consulted on 2027-01-10', confirmed: true, consulted: true },
@@ -211,4 +213,30 @@ test('prepared package after the subscription: status wording follows the countr
   assert.equal(response.headers.get('x-report-status'), 'PREPARED_INTERNAL_UNVERIFIED');
   assert.equal((await response.json()).status, 'PREPARED_INTERNAL_UNVERIFIED');
   assert.match(await text(ctx, cookie, 'txt', 'authority', '&prepared=true'), /PRIPRAVLJENO DELOVNO POROČILO/);
+});
+
+for (const country of ['DE', 'AT', 'SI']) test(`${country}: paid joint assessment refuses incomplete Article 10 content and exports after review`, async t => {
+  const ctx = await boot(t), { cookie } = await prepareCompany(ctx, country);
+  const company = [...ctx.store.companies.values()][0];
+  await ctx.store.createOrder({ id: randomUUID(), company_id: company.id, plan: 'prepare', interval: 'annual', mode: 'sandbox', status: 'sandbox_active' });
+  const blocked = await ctx.request('/reports/json?year=2026&audience=authority&type=assessment&prepared=true', cookie);
+  assert.equal(blocked.status, 409);
+  const body = await blocked.json(); assert.equal(body.error, 'ASSESSMENT_INCOMPLETE');
+  assert.ok(body.missing.some(m => m.article === '10(2)(e)'));
+  // The Article 9 report remains available; these are distinct document requirements.
+  assert.equal((await ctx.request('/reports/json?year=2026&audience=authority&prepared=true', cookie)).status, 200);
+  const workflow = await ctx.store.getWorkflow(company.id, 2026);
+  workflow.assessment.jointReviewConfirmed = true;
+  workflow.assessment.leaveOutcomes = Object.fromEntries(['Engineering', 'Small', 'Support'].map(category => [category, { applicable: false, note: 'Synthetic example: no relevant returners in this category.' }]));
+  const changed = await (await ctx.request('/workflow', cookie, { year: 2026, workflow })).json();
+  assert.equal(changed.workflow.approval.confirmed, false, 'new content requires management approval again');
+  changed.workflow.approval.confirmed = true; changed.workflow.approval.consulted = true;
+  const approved = await (await ctx.request('/workflow', cookie, { year: 2026, workflow: changed.workflow })).json();
+  assert.equal(approved.readiness.assessment.ready, true);
+  assert.equal(approved.readiness.ready, true);
+  for (const format of ['json', 'txt', 'html', 'csv', 'xml', 'xlsx', 'pdf']) {
+    const response = await ctx.request(`/reports/${format}?year=2026&audience=authority&type=assessment&prepared=true`, cookie);
+    assert.equal(response.status, 200, format);
+    if (format === 'json') { const result = await response.json(); assert.equal(result.completeness.ready, true); assert.equal(result.language, country === 'SI' ? 'sl' : 'de'); }
+  }
 });

@@ -1,0 +1,12 @@
+{
+  "checked": "2026-11-15",
+  "sources": {
+    "ebinterface": "https://raw.githubusercontent.com/austriapro/ebinterface-standards/master/schemas/ebInterface6p1/Invoice.xsd",
+    "eslog": "https://epos.si/assets/docs/e-SLOG-2.0-08-2020-EN.zip"
+  },
+  "sha256": {
+    "ebinterface/Invoice.xsd": "8c736ca0953c5b0128210bc75dfa1b8b96e9743e856b5d339eaf825c137fab7c",
+    "eslog/eSLOG20_INVOIC_v200.xsd": "cc6cd50a390e0f5db72f42a532e2fc6947d7346c52f71c54be86db0c0f9c9fce",
+    "eslog/xmldsig-core-schema.xsd": "3917eb39cf042d2da11a74b6d407ef3eeb5ca5ebee5a80cecd268a8a520638c5"
+  }
+}

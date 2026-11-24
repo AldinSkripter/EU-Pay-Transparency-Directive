@@ -33,7 +33,7 @@ export class FileControlStore {
   async mutate(fn) {
     await mkdir(dirname(this.path),{recursive:true,mode:0o700});
     const lockPath=this.path+'.lock';let lock;
-    for(let n=0;n<100;n++){try{lock=await open(lockPath,'wx',0o600);break;}catch(e){if(e.code!=='EEXIST')throw e;await new Promise(r=>setTimeout(r,50));}}
+    for(let n=0;n<100;n++){try{lock=await open(lockPath,'wx',0o600);break;}catch(e){if(e.code!=='EEXIST' && !(process.platform==='win32' && ['EPERM','EACCES'].includes(e.code)))throw e;await new Promise(r=>setTimeout(r,50));}}
     if(!lock)throw new Error('CONTROL_STORE_BUSY');
     const temporary=this.path+'.'+randomUUID()+'.tmp';
     try{const state=await this.read(),result=await fn(state);await writeFile(temporary,encryptControl(state,this.key),{mode:0o600,flag:'wx'});await rename(temporary,this.path);return result;}

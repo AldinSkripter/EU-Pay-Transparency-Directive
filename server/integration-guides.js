@@ -2,6 +2,7 @@
 // certain; where a vendor's own API cannot be confirmed to be open, the guide says so instead of promising it.
 // fit: 'file' = export a file and upload it (or send the same data through the push API),
 //      'not_suitable' = the system holds no pay data by gender per worker, use the payroll export instead.
+import {exportVerification} from './import-evidence.js';
 export const requiredData = {
   de: [
     'Eine eindeutige Personalnummer je Beschäftigte/r (wird pseudonymisiert und nicht im Klartext gespeichert)',
@@ -25,7 +26,7 @@ const fileSteps = (system, extra = {}) => ({
   de: [`Exportieren Sie in ${system} eine Auswertung je Beschäftigte/r für das Berichtsjahr mit den Pflichtangaben (siehe Liste) als CSV oder Excel.`, ...(extra.de || []), 'Laden Sie die Datei bei „Bericht vorbereiten“ hoch. Format und Kodierung werden am Inhalt erkannt; Spalten ordnen Sie in der Vorschau zu.', 'Alternativ senden Sie dieselben Daten über den Equitensa-API-Zugang (z. B. mit Zapier, Make oder einem Skript); die Lieferung prüfen und bestätigen Sie anschließend in der App.'],
   sl: [`V sistemu ${system} izvozite pregled po zaposlenem za leto poročanja z obveznimi podatki (glej seznam) kot CSV ali Excel.`, ...(extra.sl || []), 'Datoteko naložite v razdelku »Pripravite poročilo«. Obliko in kodiranje prepozna samodejno po vsebini; stolpce preslikate v predogledu.', 'Lahko pa iste podatke pošljete prek dostopa API Equitensa (npr. z Zapierjem, Makom ali skriptom); pošiljko nato preverite in potrdite v aplikaciji.'],
 });
-const entry = (id, name, market, kind, fit, formats, note, steps) => ({ id, name, market, kind, fit, formats, note, steps: fit === 'not_suitable' ? { de: [], sl: [] } : steps || fileSteps(name) });
+const entry = (id, name, market, kind, fit, formats, note, steps) => ({ id, name, market, kind, fit, formats, note, verification:exportVerification(id),steps: fit === 'not_suitable' ? { de: [], sl: [] } : steps || fileSteps(name) });
 
 export const integrationGuides = [
   entry('datev', 'DATEV Lohn und Gehalt', 'DE · AT', 'payroll', 'file', ['CSV', 'XLSX'], {
@@ -47,9 +48,11 @@ export const integrationGuides = [
   entry('sage', 'Sage (HR / Lohn)', 'DE · AT', 'payroll', 'file', ['CSV', 'XLSX'], { de: 'Auswertung je Beschäftigte/r als CSV oder Excel exportieren.', sl: 'Izvozite pregled po zaposlenem kot CSV ali Excel.' }),
   entry('pantheon', 'PANTHEON', 'SI', 'payroll', 'file', ['XLSX', 'CSV', 'XML', 'TXT'], { de: 'Export der Gehaltsabrechnung als Excel, CSV oder XML. Slowenische Zeichen: bei CSV/TXT meist Windows-1250 wählen.', sl: 'Izvoz obračuna plač kot Excel, CSV ali XML. Pri CSV/TXT običajno izberite kodiranje Windows-1250, da se ohranijo šumniki.' }),
   entry('minimax', 'Minimax', 'SI', 'payroll', 'file', ['XLSX', 'CSV'], { de: 'Export der Gehaltsdaten als Excel oder CSV.', sl: 'Izvoz podatkov o plačah kot Excel ali CSV.' }),
+  entry('saop','Saop / iCenter','SI','payroll','file',['XLSX','XLS'],{de:'Analyse der Abrechnungen mit Abrechnungszeilen als Excel exportieren. Alle erforderlichen Felder und Zeiträume prüfen.',sl:'Analizo obračunov z obračunskimi vrsticami izvozite v Excel. Preverite vsa obvezna polja in obdobja.'}),
+  entry('vasco','VASCO Plače','SI','payroll','file',['XLSX','XLS'],{de:'Excel-Export für den DU-Bericht dokumentiert. Dieser Teilbericht allein ist kein vollständiger Jahreslohndatensatz. Vollständige Lohn- und HR-Daten ergänzen.',sl:'Dokumentiran je izvoz DU v Excel. Sam ta delni izpis ni popoln letni obračun plač. Dopolnite celotne podatke o plačah in zaposlenih.'}),
   entry('birokrat', 'Birokrat', 'SI', 'payroll', 'file', ['XLSX', 'CSV', 'TXT'], { de: 'Export der Gehaltsdaten als Excel, CSV oder Text. Slowenische Zeichen: meist Windows-1250.', sl: 'Izvoz podatkov o plačah kot Excel, CSV ali besedilo. Šumniki: običajno Windows-1250.' }),
   entry('factorial', 'Factorial', 'EU', 'hris', 'file', ['CSV', 'XLSX'], { de: 'Bericht als CSV oder Excel exportieren.', sl: 'Izvozite poročilo kot CSV ali Excel.' }),
   entry('rexx', 'rexx systems', 'DE', 'hris', 'file', ['CSV', 'XLSX'], { de: 'Bericht als CSV oder Excel exportieren.', sl: 'Izvozite poročilo kot CSV ali Excel.' }),
   entry('payfit', 'PayFit', 'EU', 'payroll', 'file', ['CSV', 'XLSX'], { de: 'Jahresauswertung als CSV oder Excel exportieren.', sl: 'Izvozite letni pregled kot CSV ali Excel.' }),
-  entry('other', 'Anderes System · Other', 'DE · AT · SI', 'other', 'file', ['CSV', 'XLSX', 'ODS', 'XML', 'JSON', 'TXT'], { de: 'Jedes System, das Tabellen exportieren oder Daten per HTTPS senden kann, funktioniert: Dateien werden am Inhalt erkannt (XLSX, XLS, ODS, XML, JSON, CSV, Text mit festen Spaltenbreiten, ZIP).', sl: 'Deluje vsak sistem, ki lahko izvozi tabele ali pošlje podatke prek HTTPS: datoteke se prepoznajo po vsebini (XLSX, XLS, ODS, XML, JSON, CSV, besedilo s fiksno širino, ZIP).' }),
+  entry('other', 'Anderes System · Other', 'DE · AT · SI', 'other', 'file', ['CSV', 'XLSX', 'ODS', 'XML', 'JSON', 'TXT'], { de: 'Unterstützte Tabellenstrukturen lassen sich nach Prüfung zuordnen. Nicht jeder Herstellerexport oder jede Sicherungsdatei ist kompatibel: Dateien werden am Inhalt erkannt (XLSX, XLS, ODS, XML, JSON, CSV, Text mit festen Spaltenbreiten, ZIP).', sl: 'Podprte tabelarične strukture je mogoče po pregledu preslikati. Vsi izvozi ali varnostne kopije ponudnikov niso združljivi: datoteke se prepoznajo po vsebini (XLSX, XLS, ODS, XML, JSON, CSV, besedilo s fiksno širino, ZIP).' }),
 ];
